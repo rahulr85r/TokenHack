@@ -1,0 +1,13 @@
+{
+  "file_hashes": {
+    ".claude/skills/tokenhack/adapters/__init__.py": "a47f7cc91d45202e8fe4846a0714603821ba6a3a0e70f3cc70f5133947d78c96",
+    ".claude/skills/tokenhack/adapters/_base.py": "740c3053515d792a49c0ceb4c8834ac4e6c5d1629bef9e96a1f57e5bc9d481b7",
+    ".claude/skills/tokenhack/adapters/javascript.py": "c1b159fec1b3496b1b249efd88174eb1ab84b5030e1e6320ba1dfbdc11d2a515",
+    ".claude/skills/tokenhack/adapters/jvm.py": "78f835d55dd8138e05927c62d180462005b5368b0c0486dd6e7900e14fd6bce6",
+    ".claude/skills/tokenhack/adapters/python.py": "e2b9105618f489293ccb5a72c50b4ff5fce235278b4f6d05e52225c28942bb7a",
+    ".claude/skills/tokenhack/adapters/swift.py": "adc58bb8704f7dc73edee6cf19b1ac86181df08fa6c7dc701065a943fc9cfaa0",
+    ".claude/skills/tokenhack/indexer.py": "22f1a2a409478d85a82d06d91d300f8319415d14dd4c918c5fabad053678b057",
+    ".claude/skills/tokenhack/router.py": "bc2f5894e311a239fa109783d3a12620a5d8f3d2f85bf7c062cbefa53178f172"
+  },
+  "version": 1
+}

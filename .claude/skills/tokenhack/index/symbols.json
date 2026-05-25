@@ -1,0 +1,792 @@
+{
+  "adapters_available": {
+    "javascript": true,
+    "jvm": true,
+    "python": true,
+    "swift": true
+  },
+  "build_seconds": 0.02,
+  "built_at": "2026-05-25T05:55:28+00:00",
+  "built_at_commit": "de5f549949ae64b744584eb43eadae8bbbc225b2",
+  "files": {
+    ".claude/skills/tokenhack/adapters/__init__.py": {
+      "docstring_summary": "Language adapters for TokenHack.",
+      "imported_by": [],
+      "imports": [
+        "._base",
+        ".",
+        "os"
+      ],
+      "lang": "python",
+      "mtime": 1779687752,
+      "prose_paragraphs": [
+        "Language adapters for TokenHack.",
+        "Return the adapter module for a file path, or None if unsupported.",
+        "Return all file extensions for which an adapter exists.",
+        "Return {language_name: available_bool} — useful for diagnostics."
+      ],
+      "references": [
+        "_build_ext_map",
+        "bool",
+        "get",
+        "getattr",
+        "keys",
+        "lower",
+        "sorted",
+        "splitext"
+      ],
+      "size_chars": 1572,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 27,
+          "name": "_build_ext_map",
+          "signature": "def _build_ext_map():"
+        },
+        {
+          "kind": "def",
+          "line": 38,
+          "name": "get_adapter",
+          "signature": "def get_adapter(filepath: str):"
+        },
+        {
+          "kind": "def",
+          "line": 45,
+          "name": "supported_extensions",
+          "signature": "def supported_extensions():"
+        },
+        {
+          "kind": "def",
+          "line": 50,
+          "name": "availability_report",
+          "signature": "def availability_report():"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/adapters/_base.py": {
+      "docstring_summary": "Base types and utilities shared by all TokenHack language adapters.",
+      "imported_by": [
+        ".claude/skills/tokenhack/adapters/__init__.py",
+        ".claude/skills/tokenhack/adapters/swift.py",
+        ".claude/skills/tokenhack/adapters/python.py",
+        ".claude/skills/tokenhack/adapters/jvm.py",
+        ".claude/skills/tokenhack/adapters/javascript.py"
+      ],
+      "imports": [
+        "dataclasses",
+        "typing"
+      ],
+      "lang": "python",
+      "mtime": 1779687752,
+      "prose_paragraphs": [
+        "Base types and utilities shared by all TokenHack language adapters.",
+        "Return the UTF-8 text of a tree-sitter node, replacing invalid bytes.",
+        "Strip leading/trailing string quote markers (single, double, triple)."
+      ],
+      "references": [
+        "asdict",
+        "decode",
+        "endswith",
+        "field",
+        "len",
+        "split",
+        "startswith",
+        "strip"
+      ],
+      "size_chars": 1329,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 7,
+          "name": "Symbol",
+          "signature": "class Symbol:"
+        },
+        {
+          "kind": "def",
+          "line": 13,
+          "name": "to_dict",
+          "signature": "def to_dict(self):"
+        },
+        {
+          "kind": "def",
+          "line": 18,
+          "name": "ExtractResult",
+          "signature": "class ExtractResult:"
+        },
+        {
+          "kind": "def",
+          "line": 26,
+          "name": "get_text",
+          "signature": "def get_text(node, source: bytes) -> str:"
+        },
+        {
+          "kind": "def",
+          "line": 31,
+          "name": "first_line",
+          "signature": "def first_line(text: str) -> str:"
+        },
+        {
+          "kind": "def",
+          "line": 35,
+          "name": "strip_string_quotes",
+          "signature": "def strip_string_quotes(s: str) -> str:"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/adapters/javascript.py": {
+      "docstring_summary": "JavaScript adapter for TokenHack (JSX included).",
+      "imported_by": [],
+      "imports": [
+        "._base",
+        "tree_sitter",
+        "tree_sitter_javascript"
+      ],
+      "lang": "python",
+      "mtime": 1779687752,
+      "prose_paragraphs": [
+        "JavaScript adapter for TokenHack (JSX included)."
+      ],
+      "references": [
+        "ExtractResult",
+        "Language",
+        "Parser",
+        "Symbol",
+        "add",
+        "append",
+        "child_by_field_name",
+        "first_line",
+        "fromkeys",
+        "get_text",
+        "language",
+        "list",
+        "parse",
+        "pop",
+        "reversed",
+        "set",
+        "sorted",
+        "strip"
+      ],
+      "size_chars": 3069,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 30,
+          "name": "extract",
+          "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/adapters/jvm.py": {
+      "docstring_summary": "JVM-family adapter (Java + Kotlin) for TokenHack.",
+      "imported_by": [],
+      "imports": [
+        "._base",
+        "tree_sitter",
+        "tree_sitter_java",
+        "tree_sitter_kotlin"
+      ],
+      "lang": "python",
+      "mtime": 1779687752,
+      "prose_paragraphs": [
+        "JVM-family adapter (Java + Kotlin) for TokenHack."
+      ],
+      "references": [
+        "ExtractResult",
+        "Language",
+        "Parser",
+        "Symbol",
+        "_find_name",
+        "_parser_for",
+        "add",
+        "append",
+        "child_by_field_name",
+        "endswith",
+        "first_line",
+        "fromkeys",
+        "get_text",
+        "language",
+        "list",
+        "lower",
+        "parse",
+        "pop",
+        "reversed",
+        "set",
+        "sorted",
+        "split"
+      ],
+      "size_chars": 3913,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 52,
+          "name": "_parser_for",
+          "signature": "def _parser_for(filepath: str):"
+        },
+        {
+          "kind": "def",
+          "line": 61,
+          "name": "_find_name",
+          "signature": "def _find_name(node):"
+        },
+        {
+          "kind": "def",
+          "line": 71,
+          "name": "extract",
+          "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/adapters/python.py": {
+      "docstring_summary": "Python adapter for TokenHack.",
+      "imported_by": [],
+      "imports": [
+        "._base",
+        "tree_sitter",
+        "tree_sitter_python"
+      ],
+      "lang": "python",
+      "mtime": 1779687752,
+      "prose_paragraphs": [
+        "Python adapter for TokenHack."
+      ],
+      "references": [
+        "ExtractResult",
+        "Language",
+        "Parser",
+        "Symbol",
+        "_docstring_of",
+        "add",
+        "append",
+        "child_by_field_name",
+        "first_line",
+        "fromkeys",
+        "get_text",
+        "language",
+        "list",
+        "parse",
+        "pop",
+        "reversed",
+        "set",
+        "sorted",
+        "strip_string_quotes"
+      ],
+      "size_chars": 3596,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 21,
+          "name": "_docstring_of",
+          "signature": "def _docstring_of(body_node, source: bytes) -> str:"
+        },
+        {
+          "kind": "def",
+          "line": 34,
+          "name": "extract",
+          "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/adapters/swift.py": {
+      "docstring_summary": "Swift adapter for TokenHack.",
+      "imported_by": [],
+      "imports": [
+        "._base",
+        "tree_sitter",
+        "tree_sitter_swift"
+      ],
+      "lang": "python",
+      "mtime": 1779687752,
+      "prose_paragraphs": [
+        "Swift adapter for TokenHack."
+      ],
+      "references": [
+        "ExtractResult",
+        "Language",
+        "Parser",
+        "Symbol",
+        "_find_name",
+        "add",
+        "append",
+        "child_by_field_name",
+        "first_line",
+        "fromkeys",
+        "get_text",
+        "language",
+        "list",
+        "parse",
+        "pop",
+        "reversed",
+        "set",
+        "sorted",
+        "split"
+      ],
+      "size_chars": 2400,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 26,
+          "name": "_find_name",
+          "signature": "def _find_name(node):"
+        },
+        {
+          "kind": "def",
+          "line": 36,
+          "name": "extract",
+          "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/indexer.py": {
+      "docstring_summary": "",
+      "imported_by": [],
+      "imports": [
+        "argparse",
+        "hashlib",
+        "json",
+        "os",
+        "subprocess",
+        "sys",
+        "time",
+        "datetime",
+        "pathlib",
+        "adapters"
+      ],
+      "lang": "python",
+      "mtime": 1779687882,
+      "prose_paragraphs": [
+        "Walk up from `start` looking for the repo root.",
+        "Yield (rel_path, full_path) for code files under `root`.",
+        "Yield (rel_path, full_path) for markdown files worth indexing.",
+        "Return up to N short paragraphs from markdown text.",
+        "Heuristically wire `imported_by` based on import string segments."
+      ],
+      "references": [
+        "ArgumentParser",
+        "Path",
+        "_skip",
+        "add",
+        "add_argument",
+        "append",
+        "availability_report",
+        "basename",
+        "build_reverse_imports",
+        "current_commit",
+        "cwd",
+        "dict",
+        "dumps",
+        "endswith",
+        "exists",
+        "extract",
+        "extract_prose_paragraphs",
+        "file_hash",
+        "find_repo_root",
+        "get",
+        "get_adapter",
+        "hexdigest",
+        "index_repo",
+        "insert",
+        "int",
+        "is_dir",
+        "isinstance",
+        "isoformat",
+        "items",
+        "iter",
+        "join",
+        "len",
+        "load",
+        "load_meta",
+        "load_symbols",
+        "lower",
+        "main",
+        "mkdir",
+        "now",
+        "open",
+        "parse_args",
+        "pop",
+        "print",
+        "range",
+        "read",
+        "read_text",
+        "relative_to",
+        "replace",
+        "resolve",
+        "round",
+        "rstrip",
+        "run",
+        "set",
+        "setdefault",
+        "sha256",
+        "sorted",
+        "split",
+        "splitext",
+        "startswith",
+        "stat",
+        "str",
+        "strip",
+        "supported_extensions",
+        "time",
+        "to_dict",
+        "update",
+        "values",
+        "walk",
+        "walk_code",
+        "walk_prose",
+        "write_text"
+      ],
+      "size_chars": 11787,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 59,
+          "name": "find_repo_root",
+          "signature": "def find_repo_root(start: Path) -> Path:"
+        },
+        {
+          "kind": "def",
+          "line": 75,
+          "name": "current_commit",
+          "signature": "def current_commit(repo_root: Path) -> str:"
+        },
+        {
+          "kind": "def",
+          "line": 88,
+          "name": "file_hash",
+          "signature": "def file_hash(path: Path) -> str:"
+        },
+        {
+          "kind": "def",
+          "line": 96,
+          "name": "walk_code",
+          "signature": "def walk_code(root: Path, exts):"
+        },
+        {
+          "kind": "def",
+          "line": 113,
+          "name": "walk_prose",
+          "signature": "def walk_prose(root: Path):"
+        },
+        {
+          "kind": "def",
+          "line": 132,
+          "name": "extract_prose_paragraphs",
+          "signature": "def extract_prose_paragraphs(text: str):"
+        },
+        {
+          "kind": "def",
+          "line": 150,
+          "name": "load_meta",
+          "signature": "def load_meta(meta_path: Path) -> dict:"
+        },
+        {
+          "kind": "def",
+          "line": 165,
+          "name": "load_symbols",
+          "signature": "def load_symbols(sym_path: Path):"
+        },
+        {
+          "kind": "def",
+          "line": 175,
+          "name": "build_reverse_imports",
+          "signature": "def build_reverse_imports(files_index: dict):"
+        },
+        {
+          "kind": "def",
+          "line": 209,
+          "name": "index_repo",
+          "signature": "def index_repo(root: Path, force: bool = False, verbose: bool = False) -> dict:"
+        },
+        {
+          "kind": "def",
+          "line": 234,
+          "name": "_skip",
+          "signature": "def _skip(reason: str):"
+        },
+        {
+          "kind": "def",
+          "line": 351,
+          "name": "main",
+          "signature": "def main():"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/router.py": {
+      "docstring_summary": "",
+      "imported_by": [],
+      "imports": [
+        "difflib",
+        "json",
+        "math",
+        "os",
+        "re",
+        "sys",
+        "time",
+        "collections",
+        "pathlib",
+        "subprocess"
+      ],
+      "lang": "python",
+      "mtime": 1779688073,
+      "prose_paragraphs": [
+        "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
+        "Lowercase tokens with stopword filter and identifier splitting.",
+        "Expand each query token with up to N close matches from the vocabulary.",
+        "Locate symbols.json by walking up from cwd, then falling back to script-relative.",
+        "Tokenize per-file content into code and prose channels.",
+        "Standard BM25 over a token list.",
+        "Count query tokens that appear in the file's basename stem.",
+        "Count query tokens that appear in any path-segment of the file.",
+        "Exponential decay on file age in days.",
+        "+1 per query token that matches a definition name in this file.",
+        "Files imported by more than HUB_FRACTION of the corpus.",
+        "Propagate seed scores to neighbors in both directions, 2 hops with decay.",
+        "Heuristically find a paired test file for a source file (or vice versa).",
+        "One-line human-readable rationale for the score.",
+        "Compare index built-at-commit to HEAD; return warning string or None.",
+        "Rough chars/4 token estimate for token-budget capping.",
+        "Score every file in the index for the given query."
+      ],
+      "references": [
+        "Counter",
+        "Path",
+        "add",
+        "append",
+        "basename",
+        "bm25_score",
+        "build_corpus",
+        "build_why",
+        "channel_idf_avgdl",
+        "check_staleness",
+        "compile",
+        "cwd",
+        "definition_bonus",
+        "dirname",
+        "endswith",
+        "estimate_tokens",
+        "exists",
+        "exit",
+        "extend",
+        "filename_match",
+        "find_index_path",
+        "find_test_partner",
+        "findall",
+        "float",
+        "format_output",
+        "fuzzy_expand",
+        "get",
+        "get_close_matches",
+        "graph_propagation",
+        "identify_hubs",
+        "int",
+        "items",
+        "join",
+        "keys",
+        "len",
+        "list",
+        "load",
+        "load_index",
+        "log",
+        "lower",
+        "main",
+        "max",
+        "neighbors_of",
+        "open",
+        "path_affinity",
+        "popularity_score",
+        "pow",
+        "print",
+        "rank",
+        "recency_score",
+        "resolve",
+        "run",
+        "set",
+        "setdefault",
+        "sorted",
+        "split",
+        "split_identifier",
+        "splitext",
+        "splitlines",
+        "startswith",
+        "str",
+        "strip",
+        "sum",
+        "time",
+        "tokenize",
+        "update",
+        "values"
+      ],
+      "size_chars": 21647,
+      "symbols": [
+        {
+          "kind": "def",
+          "line": 70,
+          "name": "split_identifier",
+          "signature": "def split_identifier(token: str):"
+        },
+        {
+          "kind": "def",
+          "line": 82,
+          "name": "tokenize",
+          "signature": "def tokenize(text: str):"
+        },
+        {
+          "kind": "def",
+          "line": 108,
+          "name": "fuzzy_expand",
+          "signature": "def fuzzy_expand(tokens, vocabulary):"
+        },
+        {
+          "kind": "def",
+          "line": 131,
+          "name": "find_index_path",
+          "signature": "def find_index_path() -> Path:"
+        },
+        {
+          "kind": "def",
+          "line": 141,
+          "name": "load_index",
+          "signature": "def load_index():"
+        },
+        {
+          "kind": "def",
+          "line": 156,
+          "name": "build_corpus",
+          "signature": "def build_corpus(index):"
+        },
+        {
+          "kind": "def",
+          "line": 203,
+          "name": "channel_idf_avgdl",
+          "signature": "def channel_idf_avgdl(channel):"
+        },
+        {
+          "kind": "def",
+          "line": 240,
+          "name": "bm25_score",
+          "signature": "def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):"
+        },
+        {
+          "kind": "def",
+          "line": 261,
+          "name": "filename_match",
+          "signature": "def filename_match(query_tokens, rel_path):"
+        },
+        {
+          "kind": "def",
+          "line": 269,
+          "name": "path_affinity",
+          "signature": "def path_affinity(query_tokens, rel_path):"
+        },
+        {
+          "kind": "def",
+          "line": 283,
+          "name": "recency_score",
+          "signature": "def recency_score(mtime, now):"
+        },
+        {
+          "kind": "def",
+          "line": 291,
+          "name": "popularity_score",
+          "signature": "def popularity_score(entry, max_pop):"
+        },
+        {
+          "kind": "def",
+          "line": 297,
+          "name": "definition_bonus",
+          "signature": "def definition_bonus(query_tokens, entry):"
+        },
+        {
+          "kind": "def",
+          "line": 312,
+          "name": "identify_hubs",
+          "signature": "def identify_hubs(reverse_graph, n_files):"
+        },
+        {
+          "kind": "def",
+          "line": 318,
+          "name": "graph_propagation",
+          "signature": "def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):"
+        },
+        {
+          "kind": "def",
+          "line": 327,
+          "name": "neighbors_of",
+          "signature": "def neighbors_of(rel):"
+        },
+        {
+          "kind": "def",
+          "line": 357,
+          "name": "find_test_partner",
+          "signature": "def find_test_partner(rel, all_rels):"
+        },
+        {
+          "kind": "def",
+          "line": 394,
+          "name": "build_why",
+          "signature": "def build_why(breakdown):"
+        },
+        {
+          "kind": "def",
+          "line": 429,
+          "name": "check_staleness",
+          "signature": "def check_staleness(index, root: Path):"
+        },
+        {
+          "kind": "def",
+          "line": 464,
+          "name": "estimate_tokens",
+          "signature": "def estimate_tokens(entry):"
+        },
+        {
+          "kind": "def",
+          "line": 469,
+          "name": "rank",
+          "signature": "def rank(query: str, index: dict):"
+        },
+        {
+          "kind": "def",
+          "line": 540,
+          "name": "format_output",
+          "signature": "def format_output(query, index, ranked, breakdowns, index_path):"
+        },
+        {
+          "kind": "def",
+          "line": 612,
+          "name": "main",
+          "signature": "def main():"
+        }
+      ]
+    }
+  },
+  "n_files_indexed": 8,
+  "n_files_parsed": 8,
+  "n_files_reused": 0,
+  "n_files_skipped": 0,
+  "prose": {
+    ".claude/skills/tokenhack/README.md": [
+      "Contributor-facing docs. For the user-facing pitch and install, see the [top-level README](../../../README.md).",
+      "## Layout",
+      "## Scoring formula",
+      "The router combines a BM25 baseline with structural and heuristic priors:",
+      "score(file, query) = BM25(tokens, symbols ∪ refs ∪ path_tokens) # lexical + η · BM25(tokens, docstrings ∪ markdown_paragraphs) # prose channel + α · filename_match(tokens, basename(file)) + β · path_affinity(tokens, dirname(file)) + γ · recency(mtime(file)) # exponential decay + ε · symbol_popularity(file) # incoming imports + ζ · definition_bonus(tokens, defs_in_file) + δ₁ · graph_propagation_1ho…",
+      "Hub suppression: files imported by more than `HUB_FRACTION` of the corpus do not propagate scores to their neighbours (utility hubs like `utils.py` would otherwise drag the whole repo in).",
+      "## Tunable constants (router.py)",
+      "| Constant | Default | What it does | |---|---|---| | `ALPHA` | 1.5 | Weight of filename-match hits | | `BETA` | 1.0 | Weight of path-affinity hits | | `GAMMA` | 0.5 | Weight of recency decay | | `EPSILON` | 0.3 | Weight of symbol popularity (incoming imports) | | `ZETA` | 0.5 | Bonus per matched definition name | | `DELTA_1HOP` | 1.0 | 1-hop import-graph propagation | | `DELTA_2HOP` | 0.3 | 2-hop…",
+      "Open a PR with rationale + measurements if you change any of these.",
+      "## Adding a new language adapter"
+    ],
+    "README.md": [
+      "**Stop your AI coding assistant from burning tokens grepping its way around your codebase.**",
+      "TokenHack ships as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) skill that lives inside your repo. When you ask a codebase-wide question, it pre-stages the most relevant files using a local, pure-Python hybrid retrieval engine — so Claude reads ~5 targeted files instead of exploring your tree.",
+      "Zero per-developer install. Zero external tooling. No embeddings model, no API calls, no SaaS. The index is built by CI and committed alongside your code; the retrieval is plain Python stdlib running on the developer's own machine.",
+      "---",
+      "## Who this is for",
+      "- Engineers working on **existing, extensive codebases** (large monorepos, mature services, legacy systems). - Engineers using **token-intensive AI coding tools** (Claude Code, Cursor, etc.) who keep hitting usage limits. - Engineers in **organizations that block external tooling**, can't deploy a SaaS retrieval service, and can't ship a model file to every laptop.",
+      "If your team is small, your repo fits comfortably in Claude's context window, or you're greenfield — you probably don't need this yet.",
+      "---",
+      "## How it works",
+      "Three pieces, all checked into your repo:"
+    ]
+  },
+  "skip_reasons": {},
+  "version": 1
+}
