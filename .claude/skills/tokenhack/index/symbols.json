@@ -6,8 +6,8 @@
     "swift": true
   },
   "build_seconds": 0.01,
-  "built_at": "2026-05-25T23:11:01+00:00",
-  "built_at_commit": "fff408f2d94e04b9bdfeb4784cbb98f642fab80e",
+  "built_at": "2026-05-25T23:57:22+00:00",
+  "built_at_commit": "7f507180ebbd7dd6ffce89a6b6dc95599183e82b",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -352,7 +352,7 @@
         "adapters"
       ],
       "lang": "python",
-      "mtime": 1779689703,
+      "mtime": 1779753440,
       "prose_paragraphs": [
         "Walk up from `start` looking for the repo root.",
         "Yield (rel_path, full_path) for code files under `root`.",
@@ -435,77 +435,77 @@
         "walk_prose",
         "write_text"
       ],
-      "size_chars": 12122,
+      "size_chars": 13165,
       "symbols": [
         {
           "kind": "def",
-          "line": 59,
+          "line": 63,
           "name": "find_repo_root",
           "signature": "def find_repo_root(start: Path) -> Path:"
         },
         {
           "kind": "def",
-          "line": 75,
+          "line": 79,
           "name": "current_commit",
           "signature": "def current_commit(repo_root: Path) -> str:"
         },
         {
           "kind": "def",
-          "line": 88,
+          "line": 92,
           "name": "file_hash",
           "signature": "def file_hash(path: Path) -> str:"
         },
         {
           "kind": "def",
-          "line": 96,
+          "line": 100,
           "name": "walk_code",
-          "signature": "def walk_code(root: Path, exts):"
+          "signature": "def walk_code(root: Path, exts, stop_dirs=None):"
         },
         {
           "kind": "def",
-          "line": 113,
+          "line": 118,
           "name": "walk_prose",
-          "signature": "def walk_prose(root: Path):"
+          "signature": "def walk_prose(root: Path, stop_dirs=None):"
         },
         {
           "kind": "def",
-          "line": 129,
+          "line": 135,
           "name": "extract_prose_paragraphs",
           "signature": "def extract_prose_paragraphs(text: str):"
         },
         {
           "kind": "def",
-          "line": 156,
+          "line": 162,
           "name": "load_meta",
           "signature": "def load_meta(meta_path: Path) -> dict:"
         },
         {
           "kind": "def",
-          "line": 171,
+          "line": 177,
           "name": "load_symbols",
           "signature": "def load_symbols(sym_path: Path):"
         },
         {
           "kind": "def",
-          "line": 181,
+          "line": 187,
           "name": "build_reverse_imports",
           "signature": "def build_reverse_imports(files_index: dict):"
         },
         {
           "kind": "def",
-          "line": 215,
+          "line": 221,
           "name": "index_repo",
-          "signature": "def index_repo(root: Path, force: bool = False, verbose: bool = False) -> dict:"
+          "signature": "def index_repo(root: Path, force: bool = False, verbose: bool = False,"
         },
         {
           "kind": "def",
-          "line": 240,
+          "line": 252,
           "name": "_skip",
           "signature": "def _skip(reason: str):"
         },
         {
           "kind": "def",
-          "line": 357,
+          "line": 369,
           "name": "main",
           "signature": "def main():"
         }
@@ -527,7 +527,7 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1779750657,
+      "mtime": 1779753440,
       "prose_paragraphs": [
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
@@ -622,7 +622,7 @@
         "update",
         "values"
       ],
-      "size_chars": 29343,
+      "size_chars": 30123,
       "symbols": [
         {
           "kind": "def",
@@ -638,139 +638,139 @@
         },
         {
           "kind": "def",
-          "line": 126,
+          "line": 129,
           "name": "fuzzy_expand",
           "signature": "def fuzzy_expand(tokens, vocabulary):"
         },
         {
           "kind": "def",
-          "line": 158,
+          "line": 161,
           "name": "detect_callers_target",
           "signature": "def detect_callers_target(query: str):"
         },
         {
           "kind": "def",
-          "line": 171,
+          "line": 174,
           "name": "find_callers_files",
           "signature": "def find_callers_files(target: str, files: dict, reverse_graph: dict):"
         },
         {
           "kind": "def",
-          "line": 194,
+          "line": 197,
           "name": "find_index_path",
           "signature": "def find_index_path() -> Path:"
         },
         {
           "kind": "def",
-          "line": 204,
+          "line": 207,
           "name": "load_index",
           "signature": "def load_index():"
         },
         {
           "kind": "def",
-          "line": 219,
+          "line": 222,
           "name": "build_corpus",
           "signature": "def build_corpus(index):"
         },
         {
           "kind": "def",
-          "line": 266,
+          "line": 269,
           "name": "channel_idf_avgdl",
           "signature": "def channel_idf_avgdl(channel):"
         },
         {
           "kind": "def",
-          "line": 303,
+          "line": 306,
           "name": "bm25_score",
           "signature": "def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):"
         },
         {
           "kind": "def",
-          "line": 324,
+          "line": 327,
           "name": "filename_match",
           "signature": "def filename_match(query_tokens, rel_path):"
         },
         {
           "kind": "def",
-          "line": 332,
+          "line": 340,
           "name": "path_affinity",
           "signature": "def path_affinity(query_tokens, rel_path):"
         },
         {
           "kind": "def",
-          "line": 346,
+          "line": 354,
           "name": "recency_score",
           "signature": "def recency_score(mtime, now):"
         },
         {
           "kind": "def",
-          "line": 354,
+          "line": 362,
           "name": "popularity_score",
           "signature": "def popularity_score(entry, max_pop):"
         },
         {
           "kind": "def",
-          "line": 360,
+          "line": 368,
           "name": "definition_bonus",
           "signature": "def definition_bonus(query_tokens, entry):"
         },
         {
           "kind": "def",
-          "line": 375,
+          "line": 383,
           "name": "identify_hubs",
           "signature": "def identify_hubs(reverse_graph, n_files):"
         },
         {
           "kind": "def",
-          "line": 381,
+          "line": 389,
           "name": "graph_propagation",
           "signature": "def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):"
         },
         {
           "kind": "def",
-          "line": 390,
+          "line": 403,
           "name": "neighbors_of",
           "signature": "def neighbors_of(rel):"
         },
         {
           "kind": "def",
-          "line": 420,
+          "line": 435,
           "name": "find_test_partner",
           "signature": "def find_test_partner(rel, all_rels):"
         },
         {
           "kind": "def",
-          "line": 457,
+          "line": 472,
           "name": "build_why",
           "signature": "def build_why(breakdown):"
         },
         {
           "kind": "def",
-          "line": 494,
+          "line": 509,
           "name": "check_staleness",
           "signature": "def check_staleness(index, root: Path):"
         },
         {
           "kind": "def",
-          "line": 529,
+          "line": 544,
           "name": "estimate_tokens",
           "signature": "def estimate_tokens(entry):"
         },
         {
           "kind": "def",
-          "line": 534,
+          "line": 549,
           "name": "rank",
           "signature": "def rank(query: str, index: dict):"
         },
         {
           "kind": "def",
-          "line": 671,
+          "line": 686,
           "name": "format_output",
           "signature": "def format_output(query, index, ranked, breakdowns, meta, index_path):"
         },
         {
           "kind": "def",
-          "line": 790,
+          "line": 805,
           "name": "main",
           "signature": "def main():"
         }
@@ -778,8 +778,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 1,
-  "n_files_reused": 7,
+  "n_files_parsed": 2,
+  "n_files_reused": 6,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [

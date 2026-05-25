@@ -6,8 +6,8 @@
     ".claude/skills/tokenhack/adapters/jvm.py": "78f835d55dd8138e05927c62d180462005b5368b0c0486dd6e7900e14fd6bce6",
     ".claude/skills/tokenhack/adapters/python.py": "e2b9105618f489293ccb5a72c50b4ff5fce235278b4f6d05e52225c28942bb7a",
     ".claude/skills/tokenhack/adapters/swift.py": "adc58bb8704f7dc73edee6cf19b1ac86181df08fa6c7dc701065a943fc9cfaa0",
-    ".claude/skills/tokenhack/indexer.py": "eab6391d3572040ee7aec8acb672eb6cdc752dd2ee4ecd9491068a0745dac064",
-    ".claude/skills/tokenhack/router.py": "1b53c5e2e46145da5ae9ba038b39fab4523c4262b4968e86baa14af28d1f18cf"
+    ".claude/skills/tokenhack/indexer.py": "7ab27f3b55b3fd150e833f9dc5d3e7632a047c66c40e812811684089c883b9e3",
+    ".claude/skills/tokenhack/router.py": "33ad7536c3989f582f1960102d615ebcc7ac994360a49f422ee4e4f1abdfbdae"
   },
   "version": 1
 }
