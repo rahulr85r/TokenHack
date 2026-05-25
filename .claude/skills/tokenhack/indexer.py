@@ -52,7 +52,7 @@ INDEX_VERSION = 1
 
 # Caps to keep the index lean.
 MAX_FILE_SIZE = 1024 * 1024  # 1 MB — skip vendored bundles, minified blobs
-MAX_PROSE_PARAGRAPHS_PER_FILE = 10
+MAX_PROSE_PARAGRAPHS_PER_FILE = 30
 MAX_PROSE_PARAGRAPH_CHARS = 400
 
 
@@ -111,10 +111,11 @@ def walk_code(root: Path, exts):
 
 
 def walk_prose(root: Path):
-    """Yield (rel_path, full_path) for markdown files worth indexing.
+    """Yield (rel_path, full_path) for every `.md` file outside stop-dirs.
 
-    Currently: any `README.md` (any depth) plus anything ending in `.md`
-    inside a `docs/` directory.
+    Prose is high-signal for "how does X work?" queries — README, SKILL.md,
+    CONTRIBUTING, CHANGELOG, ADRs, runbooks, design docs all qualify.
+    Generated artifacts and dependency trees are pruned via STOP_DIRS.
     """
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in STOP_DIRS]
@@ -122,15 +123,20 @@ def walk_prose(root: Path):
             if not fn.lower().endswith(".md"):
                 continue
             full = Path(dirpath) / fn
-            rel = str(full.relative_to(root))
-            if fn.lower() == "readme.md":
-                yield rel, full
-            elif "docs" in rel.split(os.sep):
-                yield rel, full
+            yield str(full.relative_to(root)), full
 
 
 def extract_prose_paragraphs(text: str):
-    """Return up to N short paragraphs from markdown text."""
+    """Return up to N short paragraphs from markdown text.
+
+    Strips a leading YAML frontmatter block (--- ... ---) before splitting,
+    so the frontmatter doesn't pollute the prose corpus on SKILL.md or
+    similar files with metadata headers.
+    """
+    if text.startswith("---\n") or text.startswith("---\r\n"):
+        end = text.find("\n---", 4)
+        if end > 0:
+            text = text[end + 4:].lstrip("\r\n")
     out = []
     for raw in text.split("\n\n"):
         para = " ".join(raw.split()).strip()

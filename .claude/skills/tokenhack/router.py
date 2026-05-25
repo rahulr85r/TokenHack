@@ -554,8 +554,13 @@ def format_output(query, index, ranked, breakdowns, index_path):
         if warn:
             lines.append(warn)
 
-    # Low-confidence flag (conditional)
-    if not ranked or ranked[0][1] < LOW_CONFIDENCE_SCORE:
+    # Low-confidence flag — fires when:
+    #   (a) no ranked results at all, or
+    #   (b) top raw score below threshold, or
+    #   (c) top result has zero matched query tokens (pure popularity/recency
+    #       floor with no real term hit — the failure mode actually worth flagging).
+    top_matched = bool(breakdowns.get(ranked[0][0], {}).get("matched_tokens")) if ranked else False
+    if not ranked or ranked[0][1] < LOW_CONFIDENCE_SCORE or not top_matched:
         lines.append("[low-confidence retrieval — consider rephrasing or use grep directly]")
 
     lines.append("")

@@ -5,9 +5,9 @@
     "python": true,
     "swift": true
   },
-  "build_seconds": 0.0,
-  "built_at": "2026-05-25T05:56:18+00:00",
-  "built_at_commit": "f2049d66b78f83790f1a393998833c8f35a2cd54",
+  "build_seconds": 0.02,
+  "built_at": "2026-05-25T06:15:36+00:00",
+  "built_at_commit": "8c9c556e8db00b6529851f133c008e281d16b178",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -66,10 +66,10 @@
     ".claude/skills/tokenhack/adapters/_base.py": {
       "docstring_summary": "Base types and utilities shared by all TokenHack language adapters.",
       "imported_by": [
-        ".claude/skills/tokenhack/adapters/swift.py",
         ".claude/skills/tokenhack/adapters/__init__.py",
-        ".claude/skills/tokenhack/adapters/jvm.py",
+        ".claude/skills/tokenhack/adapters/swift.py",
         ".claude/skills/tokenhack/adapters/python.py",
+        ".claude/skills/tokenhack/adapters/jvm.py",
         ".claude/skills/tokenhack/adapters/javascript.py"
       ],
       "imports": [
@@ -352,11 +352,11 @@
         "adapters"
       ],
       "lang": "python",
-      "mtime": 1779687882,
+      "mtime": 1779689703,
       "prose_paragraphs": [
         "Walk up from `start` looking for the repo root.",
         "Yield (rel_path, full_path) for code files under `root`.",
-        "Yield (rel_path, full_path) for markdown files worth indexing.",
+        "Yield (rel_path, full_path) for every `.md` file outside stop-dirs.",
         "Return up to N short paragraphs from markdown text.",
         "Heuristically wire `imported_by` based on import string segments."
       ],
@@ -379,6 +379,7 @@
         "extract",
         "extract_prose_paragraphs",
         "file_hash",
+        "find",
         "find_repo_root",
         "get",
         "get_adapter",
@@ -397,6 +398,7 @@
         "load_meta",
         "load_symbols",
         "lower",
+        "lstrip",
         "main",
         "mkdir",
         "now",
@@ -433,7 +435,7 @@
         "walk_prose",
         "write_text"
       ],
-      "size_chars": 11787,
+      "size_chars": 12122,
       "symbols": [
         {
           "kind": "def",
@@ -467,43 +469,43 @@
         },
         {
           "kind": "def",
-          "line": 132,
+          "line": 129,
           "name": "extract_prose_paragraphs",
           "signature": "def extract_prose_paragraphs(text: str):"
         },
         {
           "kind": "def",
-          "line": 150,
+          "line": 156,
           "name": "load_meta",
           "signature": "def load_meta(meta_path: Path) -> dict:"
         },
         {
           "kind": "def",
-          "line": 165,
+          "line": 171,
           "name": "load_symbols",
           "signature": "def load_symbols(sym_path: Path):"
         },
         {
           "kind": "def",
-          "line": 175,
+          "line": 181,
           "name": "build_reverse_imports",
           "signature": "def build_reverse_imports(files_index: dict):"
         },
         {
           "kind": "def",
-          "line": 209,
+          "line": 215,
           "name": "index_repo",
           "signature": "def index_repo(root: Path, force: bool = False, verbose: bool = False) -> dict:"
         },
         {
           "kind": "def",
-          "line": 234,
+          "line": 240,
           "name": "_skip",
           "signature": "def _skip(reason: str):"
         },
         {
           "kind": "def",
-          "line": 351,
+          "line": 357,
           "name": "main",
           "signature": "def main():"
         }
@@ -525,7 +527,7 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1779688073,
+      "mtime": 1779689705,
       "prose_paragraphs": [
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
@@ -552,6 +554,7 @@
         "append",
         "basename",
         "bm25_score",
+        "bool",
         "build_corpus",
         "build_why",
         "channel_idf_avgdl",
@@ -614,7 +617,7 @@
         "update",
         "values"
       ],
-      "size_chars": 21647,
+      "size_chars": 22020,
       "symbols": [
         {
           "kind": "def",
@@ -750,7 +753,7 @@
         },
         {
           "kind": "def",
-          "line": 612,
+          "line": 617,
           "name": "main",
           "signature": "def main():"
         }
@@ -758,8 +761,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 0,
-  "n_files_reused": 8,
+  "n_files_parsed": 8,
+  "n_files_reused": 0,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
@@ -772,7 +775,47 @@
       "## Tunable constants (router.py)",
       "| Constant | Default | What it does | |---|---|---| | `ALPHA` | 1.5 | Weight of filename-match hits | | `BETA` | 1.0 | Weight of path-affinity hits | | `GAMMA` | 0.5 | Weight of recency decay | | `EPSILON` | 0.3 | Weight of symbol popularity (incoming imports) | | `ZETA` | 0.5 | Bonus per matched definition name | | `DELTA_1HOP` | 1.0 | 1-hop import-graph propagation | | `DELTA_2HOP` | 0.3 | 2-hop…",
       "Open a PR with rationale + measurements if you change any of these.",
-      "## Adding a new language adapter"
+      "## Adding a new language adapter",
+      "Each adapter is a small module that wraps a tree-sitter grammar. To add TypeScript, Vue, Rust, etc.:",
+      "1. **Pick the grammar.** `tree-sitter-<language>` packages on PyPI are easiest. Add the dependency to `requirements.txt`. 2. **Create `adapters/<language>.py`.** Follow the shape of `python.py`:",
+      "LANGUAGE_NAME = \"typescript\" FILE_EXTENSIONS = [\".ts\", \".tsx\"]",
+      "try: from tree_sitter import Parser, Language import tree_sitter_typescript _PARSER = Parser(Language(tree_sitter_typescript.language_typescript())) AVAILABLE = True except Exception: _PARSER = None AVAILABLE = False",
+      "def extract(source: bytes, filepath: str) -> ExtractResult: if not AVAILABLE: return ExtractResult() # ... walk the AST, populate symbols / imports / references ... return ExtractResult(...) ```",
+      "3. **Register it.** Add the import to `adapters/__init__.py` and include it in the `_MODULES` tuple. 4. **Test.** Run `python3 indexer.py --verbose` on a sample repo of the new language and check that symbols / imports populate sensibly.",
+      "Adapters degrade gracefully: if the tree-sitter grammar fails to load at import time, `AVAILABLE` becomes `False` and `extract()` returns an empty result. The indexer continues with other languages.",
+      "## What v1 deliberately does NOT do",
+      "- TypeScript adapter (first-PR target — extends `javascript.py`) - Vue, Ruby, C#, Rust, Go, C/C++ adapters - Embedding-based retrieval (would require a model — breaks the stdlib + zero-install promise) - Cross-encoder reranking (same reason) - LLM-as-retriever (same reason) - Multi-hop graph beyond 2-hop (diminishing returns) - Git-history co-occurrence - Acronym expansion (JWT ↔ \"json web token\")…",
+      "See the top-level README's *Contributing* section for which of these have clear scope and are ready for PRs."
+    ],
+    ".claude/skills/tokenhack/SKILL.md": [
+      "The user invoked `/tokenhack` with this question:",
+      "> **$ARGUMENTS**",
+      "Pre-staged context from the local symbol index (zero LLM calls — pure local retrieval):",
+      "!`python3 .claude/skills/tokenhack/router.py \"$ARGUMENTS\"`",
+      "---",
+      "## How to use the staged context above",
+      "You now have a pre-ranked list of files most likely relevant to the user's question. The ranking combines BM25 over symbols + docstrings, filename / path-affinity / recency signals, and 2-hop import-graph proximity.",
+      "- **Start with the top result.** Only widen your reading if you cannot answer from it. - If the `[low-confidence retrieval …]` flag is shown above, the index found no strong match — consider using grep directly or asking the user to rephrase. - If the `[index is N files behind HEAD …]` warning is shown, very recent changes may not be reflected; mention this if you suspect their question hits new c…",
+      "Now answer the user's question using the staged files.",
+      "---",
+      "## For the rest of this session — nudge ruleset",
+      "The user has opted into TokenHack. Help them keep using it when it would save tokens.",
+      "**Before answering each new user turn**, silently classify the question. Suggest re-running `/tokenhack` **only when ALL THREE gates pass**:",
+      "**Gate 1 — Scope signal present.** The new question contains at least one of:",
+      "(a) \"where\", \"which files\", or \"how does … work\" *without* a specific file or symbol named, (b) cross-cutting verbs: *find all*, *rename across*, *audit*, *every place that*, *callers of*, (c) architectural framing: *trace from … to …*, *end-to-end*, *data flow*, *how does X work in this repo*, (d) existence / duplication checks: *do we already have*, *is there an existing*, (e) a domain concept w…",
+      "**Gate 2 — No local anchor.** The new question does NOT:",
+      "(a) name a file or symbol already in this conversation, (b) refer to the immediately previous assistant turn via pronouns (*this*, *that*, *it*, *the function above*), (c) ask a generic language/algorithm question unrelated to the repo, (d) request a trivial edit to displayed code (rename, comment, reformat).",
+      "**Gate 3 — Worth the round-trip.** The question has substantive content (more than ~5 tokens of intent) AND would plausibly require reading 3+ unseen files to answer correctly.",
+      "**When in doubt, do NOT nudge.** False positives are strictly worse than missed nudges. The user can always invoke `/tokenhack` manually.",
+      "### Nudge phrasing",
+      "When all three gates pass, respond first with this short line **before** answering anything else:",
+      "> This looks codebase-wide — want me to re-stage via `/tokenhack`? (Say \"just answer\" to skip and turn off nudging for this session.)",
+      "Then wait for the user's response.",
+      "### Escape hatch",
+      "If the user says any of: *\"just answer\"*, *\"stop nudging\"*, *\"no thanks\"*, *\"skip\"*, *\"don't nudge\"*, *\"silence\"*, or anything semantically equivalent — **stop nudging for the rest of this session.** Answer their questions directly without the suggestion line. Do not re-introduce nudging in this session."
+    ],
+    "CLAUDE.md": [
+      "For codebase-wide questions, use `/tokenhack <question>` first to pre-stage context."
     ],
     "README.md": [
       "**Stop your AI coding assistant from burning tokens grepping its way around your codebase.**",
@@ -784,7 +827,27 @@
       "If your team is small, your repo fits comfortably in Claude's context window, or you're greenfield — you probably don't need this yet.",
       "---",
       "## How it works",
-      "Three pieces, all checked into your repo:"
+      "Three pieces, all checked into your repo:",
+      "1. **Indexer** (`indexer.py`). Runs in CI on every push. Walks the repo with tree-sitter, extracts symbols + imports + docstrings, builds a compact JSON index. Incremental (file-hash keyed) so big repos rebuild quickly. Commits the updated index back. 2. **Router** (`router.py`). Pure Python stdlib. Runs locally on the developer's machine when `/tokenhack` is invoked. Tokenizes the question, ranks…",
+      "Zero passive token cost — the skill is **invisible to Claude** until the developer explicitly types `/tokenhack`, thanks to `disable-model-invocation: true` in the frontmatter.",
+      "---",
+      "## Install — 3 steps",
+      "### Step 1. Copy the skill directory into your repo",
+      "Or just download the [latest release](https://github.com/rahulr85r/TokenHack/releases) and copy the `.claude/skills/tokenhack/` directory.",
+      "### Step 2. Add one line to your project's `CLAUDE.md`",
+      "Open (or create) `CLAUDE.md` at your repo root and add this single line:",
+      "That's ~20 tokens loaded once per Claude Code session — Claude itself will then suggest `/tokenhack` to your developers when their question looks codebase-wide.",
+      "### Step 3. Wire up CI to keep the index fresh",
+      "#### GitHub Actions (recommended path)",
+      "Copy the workflow from this repo into yours:",
+      "**One-time repo setting:** GitHub → Settings → Actions → General → **Workflow permissions** → set to *\"Read and write permissions\"*. This lets the workflow commit the rebuilt index back to your repo.",
+      "**First-time seed.** Run the indexer locally once to seed an initial index so `/tokenhack` works before CI catches up:",
+      "After this initial seed, CI takes over and rebuilds the index automatically on every push.",
+      "**How the workflow protects against recursive triggers.** The provided workflow uses `paths-ignore: ['.claude/skills/tokenhack/index/**']`, so the bot's own index commit doesn't trigger another rebuild.",
+      "#### GitLab CI",
+      "(Requires a `CI_PUSH_TOKEN` CI/CD variable with write access — GitLab uses Personal Access Tokens or Project Access Tokens.)",
+      "#### CircleCI",
+      "(Requires a deploy key or token with push access on the repo.)"
     ]
   },
   "skip_reasons": {},
