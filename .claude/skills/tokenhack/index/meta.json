@@ -7,7 +7,7 @@
     ".claude/skills/tokenhack/adapters/python.py": "e2b9105618f489293ccb5a72c50b4ff5fce235278b4f6d05e52225c28942bb7a",
     ".claude/skills/tokenhack/adapters/swift.py": "adc58bb8704f7dc73edee6cf19b1ac86181df08fa6c7dc701065a943fc9cfaa0",
     ".claude/skills/tokenhack/indexer.py": "eab6391d3572040ee7aec8acb672eb6cdc752dd2ee4ecd9491068a0745dac064",
-    ".claude/skills/tokenhack/router.py": "73874d38ae5a8dc44c5fa3bc513fdf8b76ee5367df8b1c268d4430ad981b13b8"
+    ".claude/skills/tokenhack/router.py": "1b53c5e2e46145da5ae9ba038b39fab4523c4262b4968e86baa14af28d1f18cf"
   },
   "version": 1
 }

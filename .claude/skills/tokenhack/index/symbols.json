@@ -5,9 +5,9 @@
     "python": true,
     "swift": true
   },
-  "build_seconds": 0.0,
-  "built_at": "2026-05-25T06:16:24+00:00",
-  "built_at_commit": "a7037a55c553d76c854533138b4e90012b9d2ef0",
+  "build_seconds": 0.01,
+  "built_at": "2026-05-25T23:11:01+00:00",
+  "built_at_commit": "fff408f2d94e04b9bdfeb4784cbb98f642fab80e",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -527,11 +527,13 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1779689705,
+      "mtime": 1779750657,
       "prose_paragraphs": [
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
         "Expand each query token with up to N close matches from the vocabulary.",
+        "Return the target symbol if the query looks like 'callers of X', else None.",
+        "Locate files that define `target` and the set of files that import them.",
         "Locate symbols.json by walking up from cwd, then falling back to script-relative.",
         "Tokenize per-file content into code and prose channels.",
         "Standard BM25 over a token list.",
@@ -562,13 +564,14 @@
         "compile",
         "cwd",
         "definition_bonus",
+        "detect_callers_target",
         "dirname",
         "endswith",
-        "estimate_tokens",
         "exists",
         "exit",
         "extend",
         "filename_match",
+        "find_callers_files",
         "find_index_path",
         "find_test_partner",
         "findall",
@@ -578,6 +581,7 @@
         "get",
         "get_close_matches",
         "graph_propagation",
+        "group",
         "identify_hubs",
         "int",
         "items",
@@ -601,6 +605,7 @@
         "recency_score",
         "resolve",
         "run",
+        "search",
         "set",
         "setdefault",
         "sorted",
@@ -617,143 +622,155 @@
         "update",
         "values"
       ],
-      "size_chars": 22020,
+      "size_chars": 29343,
       "symbols": [
         {
           "kind": "def",
-          "line": 70,
+          "line": 88,
           "name": "split_identifier",
           "signature": "def split_identifier(token: str):"
         },
         {
           "kind": "def",
-          "line": 82,
+          "line": 100,
           "name": "tokenize",
           "signature": "def tokenize(text: str):"
         },
         {
           "kind": "def",
-          "line": 108,
+          "line": 126,
           "name": "fuzzy_expand",
           "signature": "def fuzzy_expand(tokens, vocabulary):"
         },
         {
           "kind": "def",
-          "line": 131,
+          "line": 158,
+          "name": "detect_callers_target",
+          "signature": "def detect_callers_target(query: str):"
+        },
+        {
+          "kind": "def",
+          "line": 171,
+          "name": "find_callers_files",
+          "signature": "def find_callers_files(target: str, files: dict, reverse_graph: dict):"
+        },
+        {
+          "kind": "def",
+          "line": 194,
           "name": "find_index_path",
           "signature": "def find_index_path() -> Path:"
         },
         {
           "kind": "def",
-          "line": 141,
+          "line": 204,
           "name": "load_index",
           "signature": "def load_index():"
         },
         {
           "kind": "def",
-          "line": 156,
+          "line": 219,
           "name": "build_corpus",
           "signature": "def build_corpus(index):"
         },
         {
           "kind": "def",
-          "line": 203,
+          "line": 266,
           "name": "channel_idf_avgdl",
           "signature": "def channel_idf_avgdl(channel):"
         },
         {
           "kind": "def",
-          "line": 240,
+          "line": 303,
           "name": "bm25_score",
           "signature": "def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):"
         },
         {
           "kind": "def",
-          "line": 261,
+          "line": 324,
           "name": "filename_match",
           "signature": "def filename_match(query_tokens, rel_path):"
         },
         {
           "kind": "def",
-          "line": 269,
+          "line": 332,
           "name": "path_affinity",
           "signature": "def path_affinity(query_tokens, rel_path):"
         },
         {
           "kind": "def",
-          "line": 283,
+          "line": 346,
           "name": "recency_score",
           "signature": "def recency_score(mtime, now):"
         },
         {
           "kind": "def",
-          "line": 291,
+          "line": 354,
           "name": "popularity_score",
           "signature": "def popularity_score(entry, max_pop):"
         },
         {
           "kind": "def",
-          "line": 297,
+          "line": 360,
           "name": "definition_bonus",
           "signature": "def definition_bonus(query_tokens, entry):"
         },
         {
           "kind": "def",
-          "line": 312,
+          "line": 375,
           "name": "identify_hubs",
           "signature": "def identify_hubs(reverse_graph, n_files):"
         },
         {
           "kind": "def",
-          "line": 318,
+          "line": 381,
           "name": "graph_propagation",
           "signature": "def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):"
         },
         {
           "kind": "def",
-          "line": 327,
+          "line": 390,
           "name": "neighbors_of",
           "signature": "def neighbors_of(rel):"
         },
         {
           "kind": "def",
-          "line": 357,
+          "line": 420,
           "name": "find_test_partner",
           "signature": "def find_test_partner(rel, all_rels):"
         },
         {
           "kind": "def",
-          "line": 394,
+          "line": 457,
           "name": "build_why",
           "signature": "def build_why(breakdown):"
         },
         {
           "kind": "def",
-          "line": 429,
+          "line": 494,
           "name": "check_staleness",
           "signature": "def check_staleness(index, root: Path):"
         },
         {
           "kind": "def",
-          "line": 464,
+          "line": 529,
           "name": "estimate_tokens",
           "signature": "def estimate_tokens(entry):"
         },
         {
           "kind": "def",
-          "line": 469,
+          "line": 534,
           "name": "rank",
           "signature": "def rank(query: str, index: dict):"
         },
         {
           "kind": "def",
-          "line": 540,
+          "line": 671,
           "name": "format_output",
-          "signature": "def format_output(query, index, ranked, breakdowns, index_path):"
+          "signature": "def format_output(query, index, ranked, breakdowns, meta, index_path):"
         },
         {
           "kind": "def",
-          "line": 617,
+          "line": 790,
           "name": "main",
           "signature": "def main():"
         }
@@ -761,8 +778,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 0,
-  "n_files_reused": 8,
+  "n_files_parsed": 1,
+  "n_files_reused": 7,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
@@ -772,6 +789,9 @@
       "The router combines a BM25 baseline with structural and heuristic priors:",
       "score(file, query) = BM25(tokens, symbols ∪ refs ∪ path_tokens) # lexical + η · BM25(tokens, docstrings ∪ markdown_paragraphs) # prose channel + α · filename_match(tokens, basename(file)) + β · path_affinity(tokens, dirname(file)) + γ · recency(mtime(file)) # exponential decay + ε · symbol_popularity(file) # incoming imports + ζ · definition_bonus(tokens, defs_in_file) + δ₁ · graph_propagation_1ho…",
       "Hub suppression: files imported by more than `HUB_FRACTION` of the corpus do not propagate scores to their neighbours (utility hubs like `utils.py` would otherwise drag the whole repo in).",
+      "**Lexical-vs-prior balance.** When the corpus contains a strong term match (any file with `bm25 + η·prose ≥ LEX_STRONG_THRESHOLD`), the priors `GAMMA` (recency) and `EPSILON` (popularity) are scaled down to act as tie-breakers rather than primary signals. Filename, path-affinity, and definition bonuses are query-derived and are not scaled.",
+      "**Noise-hub penalty.** A file with `popularity > 0` but no query-derived signal (no BM25 / prose hit, no filename match, no path affinity, no def bonus) is treated as a *negative* signal — popularity alone is not relevance. This catches the common failure mode where a popular utility file bubbles up on import-count prior despite being unrelated to the query.",
+      "**Callers-of mode.** When the query matches a pattern like `callers of X`, `who calls X`, `where is X used`, `find usages of X`, the router locates files defining `X` and walks the reverse-import graph to boost their importers. Defining files get a double boost so they outrank plain importers. Falls back to lexical retrieval if no definition is found.",
       "## Tunable constants (router.py)",
       "| Constant | Default | What it does | |---|---|---| | `ALPHA` | 1.5 | Weight of filename-match hits | | `BETA` | 1.0 | Weight of path-affinity hits | | `GAMMA` | 0.5 | Weight of recency decay | | `EPSILON` | 0.3 | Weight of symbol popularity (incoming imports) | | `ZETA` | 0.5 | Bonus per matched definition name | | `DELTA_1HOP` | 1.0 | 1-hop import-graph propagation | | `DELTA_2HOP` | 0.3 | 2-hop…",
       "Open a PR with rationale + measurements if you change any of these.",
