@@ -5,9 +5,9 @@
     "python": true,
     "swift": true
   },
-  "build_seconds": 0.02,
-  "built_at": "2026-05-25T05:55:28+00:00",
-  "built_at_commit": "de5f549949ae64b744584eb43eadae8bbbc225b2",
+  "build_seconds": 0.0,
+  "built_at": "2026-05-25T05:56:18+00:00",
+  "built_at_commit": "f2049d66b78f83790f1a393998833c8f35a2cd54",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -66,10 +66,10 @@
     ".claude/skills/tokenhack/adapters/_base.py": {
       "docstring_summary": "Base types and utilities shared by all TokenHack language adapters.",
       "imported_by": [
-        ".claude/skills/tokenhack/adapters/__init__.py",
         ".claude/skills/tokenhack/adapters/swift.py",
-        ".claude/skills/tokenhack/adapters/python.py",
+        ".claude/skills/tokenhack/adapters/__init__.py",
         ".claude/skills/tokenhack/adapters/jvm.py",
+        ".claude/skills/tokenhack/adapters/python.py",
         ".claude/skills/tokenhack/adapters/javascript.py"
       ],
       "imports": [
@@ -758,8 +758,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 8,
-  "n_files_reused": 0,
+  "n_files_parsed": 0,
+  "n_files_reused": 8,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
