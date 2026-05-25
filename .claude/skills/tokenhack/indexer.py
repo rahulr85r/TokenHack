@@ -35,6 +35,9 @@ from adapters import availability_report, get_adapter, supported_extensions  # n
 
 # Directories pruned during the walk. Generated artifacts, dependency
 # trees, and tool caches — never the source of useful retrieval signal.
+# `.claude` is pruned by default so the skill's own router/adapters don't
+# pollute consumer-repo indexes; pass --include-self when indexing the
+# TokenHack source repo itself.
 STOP_DIRS = {
     "node_modules", "vendor", "dist", "build", "target", "out",
     ".git", ".venv", "venv", "env", ".tox",
@@ -43,6 +46,7 @@ STOP_DIRS = {
     ".gradle", ".idea", ".vscode",
     "DerivedData", "Pods", "Carthage",
     "coverage", "htmlcov", "site-packages",
+    ".claude",
 }
 
 INDEX_REL = ".claude/skills/tokenhack/index"
@@ -93,11 +97,12 @@ def file_hash(path: Path) -> str:
     return h.hexdigest()
 
 
-def walk_code(root: Path, exts):
+def walk_code(root: Path, exts, stop_dirs=None):
     """Yield (rel_path, full_path) for code files under `root`."""
     exts_set = {e.lower() for e in exts}
+    stop = stop_dirs if stop_dirs is not None else STOP_DIRS
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in STOP_DIRS]
+        dirnames[:] = [d for d in dirnames if d not in stop]
         for fn in filenames:
             ext = os.path.splitext(fn)[1].lower()
             if ext not in exts_set:
@@ -110,15 +115,16 @@ def walk_code(root: Path, exts):
             yield rel, full
 
 
-def walk_prose(root: Path):
+def walk_prose(root: Path, stop_dirs=None):
     """Yield (rel_path, full_path) for every `.md` file outside stop-dirs.
 
     Prose is high-signal for "how does X work?" queries — README, SKILL.md,
     CONTRIBUTING, CHANGELOG, ADRs, runbooks, design docs all qualify.
     Generated artifacts and dependency trees are pruned via STOP_DIRS.
     """
+    stop = stop_dirs if stop_dirs is not None else STOP_DIRS
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in STOP_DIRS]
+        dirnames[:] = [d for d in dirnames if d not in stop]
         for fn in filenames:
             if not fn.lower().endswith(".md"):
                 continue
@@ -212,13 +218,19 @@ def build_reverse_imports(files_index: dict):
                     files_index[tgt_rel]["imported_by"].append(src_rel)
 
 
-def index_repo(root: Path, force: bool = False, verbose: bool = False) -> dict:
+def index_repo(root: Path, force: bool = False, verbose: bool = False,
+               include_self: bool = False) -> dict:
     started = time.time()
     avail = availability_report()
     if verbose:
         for lang, ok in sorted(avail.items()):
             mark = "OK " if ok else "-- "
             print(f"  [{mark}] adapter: {lang}", file=sys.stderr)
+
+    # `.claude` is pruned by default to keep the skill's own source out of
+    # consumer-repo indexes. `--include-self` removes the prune so the
+    # TokenHack source repo can index itself in CI.
+    stop_dirs = (STOP_DIRS - {".claude"}) if include_self else STOP_DIRS
 
     exts = supported_extensions()
     out_dir = root / INDEX_REL
@@ -242,7 +254,7 @@ def index_repo(root: Path, force: bool = False, verbose: bool = False) -> dict:
         n_skipped += 1
         skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
 
-    for rel, full in walk_code(root, exts):
+    for rel, full in walk_code(root, exts, stop_dirs=stop_dirs):
         try:
             size = full.stat().st_size
         except OSError:
@@ -307,7 +319,7 @@ def index_repo(root: Path, force: bool = False, verbose: bool = False) -> dict:
 
     # Prose corpus — README + docs/*.md
     prose_corpus: dict = {}
-    for rel, full in walk_prose(root):
+    for rel, full in walk_prose(root, stop_dirs=stop_dirs):
         try:
             text = full.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -362,11 +374,16 @@ def main():
                    help="Force full rebuild (ignore meta.json hashes)")
     p.add_argument("--verbose", action="store_true",
                    help="Print extra diagnostics to stderr")
+    p.add_argument("--include-self", action="store_true",
+                   help="Include `.claude/` in the index. Used by the TokenHack "
+                        "source repo itself; consumer repos should leave this off "
+                        "so the skill's own files don't pollute their index.")
     args = p.parse_args()
 
     start = args.root or Path.cwd()
     root = find_repo_root(start)
-    index_repo(root, force=args.force, verbose=args.verbose)
+    index_repo(root, force=args.force, verbose=args.verbose,
+               include_self=args.include_self)
 
 
 if __name__ == "__main__":

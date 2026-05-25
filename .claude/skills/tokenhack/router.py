@@ -102,18 +102,21 @@ def tokenize(text: str):
 
     Both the full raw token and its CamelCase / snake_case sub-tokens
     are emitted, so `getUserProfile` matches both the literal identifier
-    and the natural-language query "user profile".
+    and the natural-language query "user profile". Case is preserved
+    through `split_identifier` so `_CAMEL_RE` can find the boundaries;
+    the lowercased form is stored.
     """
     if not text:
         return []
     out = []
     seen = set()
-    for raw in _WORD_RE.findall(text.lower()):
-        if raw in CODE_STOPWORDS or len(raw) < 2:
+    for raw in _WORD_RE.findall(text):
+        low = raw.lower()
+        if low in CODE_STOPWORDS or len(low) < 2:
             continue
-        if raw not in seen:
-            seen.add(raw)
-            out.append(raw)
+        if low not in seen:
+            seen.add(low)
+            out.append(low)
         for sub in split_identifier(raw):
             if sub in CODE_STOPWORDS or len(sub) < 2:
                 continue
@@ -322,10 +325,15 @@ def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):
 
 
 def filename_match(query_tokens, rel_path):
-    """Count query tokens that appear in the file's basename stem."""
-    stem = os.path.splitext(os.path.basename(rel_path))[0].lower()
+    """Count query tokens that appear in the file's basename stem.
+
+    The original (mixed-case) stem is fed to `split_identifier` so it can
+    find CamelCase boundaries; the lowercased form is added for whole-name
+    matches.
+    """
+    stem = os.path.splitext(os.path.basename(rel_path))[0]
     stem_tokens = set(split_identifier(stem))
-    stem_tokens.add(stem)
+    stem_tokens.add(stem.lower())
     return float(sum(1 for q in query_tokens if q in stem_tokens))
 
 
@@ -381,9 +389,14 @@ def identify_hubs(reverse_graph, n_files):
 def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):
     """Propagate seed scores to neighbors in both directions, 2 hops with decay.
 
-    Hubs are not traversed *through* — they can still receive propagation
-    (so they show up if directly relevant), but they don't drag their entire
-    incoming/outgoing neighborhood along.
+    Hubs are symmetrically suppressed: they neither propagate score outward
+    *nor* receive it from non-hub seeds. Without the receive-side filter, a
+    file imported by many seeds (e.g. an `axios.js` utility) accumulates
+    massive graph-prop bonus from each seed and outranks the actual target,
+    even though it has no query-derived signal of its own — the same noise-
+    hub failure mode the popularity penalty addresses, just routed through
+    the import graph. Legitimate hits on a hub still rank via BM25 /
+    filename / def_bonus / callers_boost on the base score.
     """
     bonus = {}
 
@@ -392,11 +405,11 @@ def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):
 
     one_hop = {}
     for src, score in seed_scores.items():
-        if score <= 0:
-            continue
-        if src in hub_set:
+        if score <= 0 or src in hub_set:
             continue
         for nbr in neighbors_of(src):
+            if nbr in hub_set:
+                continue
             one_hop[nbr] = one_hop.get(nbr, 0.0) + DELTA_1HOP * score
 
     two_hop = {}
@@ -404,6 +417,8 @@ def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):
         if score <= 0 or src in hub_set:
             continue
         for nbr in neighbors_of(src):
+            if nbr in hub_set:
+                continue
             two_hop[nbr] = two_hop.get(nbr, 0.0) + DELTA_2HOP * score
 
     for k, v in one_hop.items():

@@ -43,7 +43,10 @@ jobs:
           pip install -r .claude/skills/tokenhack/requirements.txt
 
       - name: Rebuild index (incremental)
-        run: python3 .claude/skills/tokenhack/indexer.py
+        # --include-self because this IS the TokenHack repo; consumer repos
+        # should run the indexer without this flag so the skill's own
+        # router/adapters don't pollute their retrieval surface.
+        run: python3 .claude/skills/tokenhack/indexer.py --include-self
 
       - name: Commit index if changed
         run: |
