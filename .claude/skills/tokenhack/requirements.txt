@@ -1,0 +1,8 @@
+# TokenHack indexer dependencies (used in CI only).
+# The router itself is pure stdlib — no deps required on dev machines.
+tree-sitter>=0.23
+tree-sitter-python>=0.23
+tree-sitter-java>=0.23
+tree-sitter-javascript>=0.23
+tree-sitter-kotlin>=0.3
+tree-sitter-swift>=0.6
