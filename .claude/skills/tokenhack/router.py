@@ -44,8 +44,26 @@ HUB_FRACTION = 0.10              # files imported by >10% of corpus = hubs
 LOW_CONFIDENCE_SCORE = 0.5       # top score below this → flag low-confidence
 STALE_INDEX_FILE_THRESHOLD = 5   # N+ changed files since index build → warn
 
+# Lexical-vs-prior balance. When the query has a strong term match somewhere
+# in the corpus, scale down the *query-independent* priors (recency, popularity)
+# so they act as tie-breakers rather than primary signals.
+LEX_STRONG_THRESHOLD = 2.0       # max(bm25 + η·prose) ≥ this → strong lexical
+LEX_STRONG_PRIOR_SCALE = 0.25    # multiplier applied to GAMMA, EPSILON when strong
+
+# Noise-hub penalty. A file with popularity > 0 but no query-derived signal
+# (no BM25 / prose hit, no filename match, no path affinity, no def bonus) is
+# the classic "noise hub" failure: a popular utility unrelated to the query
+# bubbling up purely on its import-count prior. Dock it instead of crediting.
+NOISE_HUB_PENALTY = 0.8
+
+# Boost for files that match "callers of X" intent (either define X or import
+# a file that defines X). Tunable — kept above prior magnitudes so callers-of
+# results dominate the ranking when the mode fires.
+CALLERS_BOOST = 3.0
+
 TOP_K = 5
-STAGED_TOKEN_CAP = 2000          # cap on staged context (rough chars/4)
+STAGED_TOKEN_CAP = 10000         # advisory only; path-list output is cheap,
+                                 # so the router emits TOP_K paths regardless.
 FUZZY_MAX_PER_TOKEN = 2
 FUZZY_CUTOFF = 0.85
 
@@ -122,6 +140,51 @@ def fuzzy_expand(tokens, vocabulary):
                 seen.add(m)
                 out.append(m)
     return out
+
+
+# ----------------------------------------------------------------------
+# Query-intent detection — explicit "callers of X" mode
+# ----------------------------------------------------------------------
+
+_CALLERS_PATTERNS = [
+    re.compile(r"\bcallers?\s+of\s+([A-Za-z_][\w]*)", re.I),
+    re.compile(r"\bwho\s+(?:calls|uses|invokes|references?)\s+([A-Za-z_][\w]*)", re.I),
+    re.compile(r"\bwhere\s+is\s+([A-Za-z_][\w]*)\s+(?:called|used|invoked|referenced)", re.I),
+    re.compile(r"\b(?:find|list|all)\s+(?:usages?|callers?|references?)\s+(?:of\s+)?([A-Za-z_][\w]*)", re.I),
+    re.compile(r"\busages?\s+of\s+([A-Za-z_][\w]*)", re.I),
+]
+
+
+def detect_callers_target(query: str):
+    """Return the target symbol if the query looks like 'callers of X', else None."""
+    for pat in _CALLERS_PATTERNS:
+        m = pat.search(query)
+        if not m:
+            continue
+        target = m.group(1)
+        if target.lower() in CODE_STOPWORDS or len(target) < 2:
+            continue
+        return target
+    return None
+
+
+def find_callers_files(target: str, files: dict, reverse_graph: dict):
+    """Locate files that define `target` and the set of files that import them.
+
+    Returns (defining_files, importer_files). The defining files are included
+    in the importer set so they show up alongside the callers.
+    """
+    sym_lower = target.lower()
+    defining = set()
+    for rel, entry in files.items():
+        for sym in entry.get("symbols", []):
+            if sym.get("kind") == "def" and sym.get("name", "").lower() == sym_lower:
+                defining.add(rel)
+                break
+    importers = set(defining)
+    for df in defining:
+        importers.update(reverse_graph.get(df, set()))
+    return defining, importers
 
 
 # ----------------------------------------------------------------------
@@ -401,13 +464,15 @@ def build_why(breakdown):
         parts.append("matches '" + ", ".join(shown) + "'" + more)
 
     flags = []
+    if breakdown.get("callers_boost", 0) > 0:
+        flags.append("callers-of target")
     if breakdown["filename"] >= 1.0:
         flags.append("strong filename match")
     if breakdown["path_aff"] >= 1.0:
         flags.append("path affinity")
     if breakdown["def_bonus"] >= 1.0:
         flags.append("definition site")
-    if breakdown["popularity"] >= 0.5:
+    if breakdown["popularity"] >= 0.5 and not breakdown.get("noise_hub"):
         flags.append("popular module")
     if breakdown["recency"] >= 0.7:
         flags.append("recently changed")
@@ -469,26 +534,42 @@ def estimate_tokens(entry):
 def rank(query: str, index: dict):
     """Score every file in the index for the given query.
 
-    Returns (results, top_breakdowns) where:
-      results: list of (rel, total_score) sorted desc
-      top_breakdowns: {rel: breakdown_dict}
+    Returns (results, breakdowns, meta) where:
+      results:    list of (rel, total_score) sorted desc
+      breakdowns: {rel: breakdown_dict}
+      meta:       {"callers_target", "callers_defining", "strong_lexical", "max_bm"}
     """
     docs, idf_code, idf_prose, avgdl_code, avgdl_prose, vocabulary, fwd, rev, max_pop = build_corpus(index)
     files = index.get("files", {})
 
+    # Fix #4 — "callers of X" mode detection (runs before tokenization so it
+    # still fires even when the bare symbol would be filtered as a stopword).
+    callers_target = detect_callers_target(query)
+    callers_defining: set = set()
+    callers_importers: set = set()
+    if callers_target:
+        callers_defining, callers_importers = find_callers_files(callers_target, files, rev)
+
     query_tokens = tokenize(query)
     if not query_tokens:
-        return [], {}
+        meta = {
+            "callers_target": callers_target,
+            "callers_defining": callers_defining,
+            "strong_lexical": False,
+            "max_bm": 0.0,
+        }
+        return [], {}, meta
     query_tokens = fuzzy_expand(query_tokens, vocabulary)
 
     now = time.time()
     hub_set = identify_hubs(rev, len(files))
 
-    breakdowns = {}
-    base_scores = {}
+    # Pass 1 — collect raw per-file signals so we can derive a corpus-wide
+    # lexical-strength measurement before applying prior weights.
+    raw = {}
     for rel, channels in docs.items():
         entry = files.get(rel, {})
-        matched = set()
+        matched: set = set()
         bm = bm25_score(query_tokens, channels["code"], idf_code, avgdl_code, matched_out=matched)
         prose_bm = bm25_score(query_tokens, channels["prose"], idf_prose, avgdl_prose, matched_out=matched)
         fn = filename_match(query_tokens, rel)
@@ -496,27 +577,70 @@ def rank(query: str, index: dict):
         rc = recency_score(entry.get("mtime", 0), now)
         pop = popularity_score(entry, max_pop)
         defb = definition_bonus(query_tokens, entry)
+        raw[rel] = {
+            "bm25": bm, "prose": prose_bm, "filename": fn, "path_aff": pa,
+            "recency": rc, "popularity": pop, "def_bonus": defb,
+            "matched": matched,
+        }
+
+    # Fix #2 — strong-lexical detection. When something in the corpus matches
+    # the query strongly, we down-weight the priors (recency, popularity) so
+    # the lexical signal stays in charge.
+    max_bm = 0.0
+    for r in raw.values():
+        s = r["bm25"] + ETA * r["prose"]
+        if s > max_bm:
+            max_bm = s
+    strong_lexical = max_bm >= LEX_STRONG_THRESHOLD
+    gamma_eff = GAMMA * LEX_STRONG_PRIOR_SCALE if strong_lexical else GAMMA
+    epsilon_eff = EPSILON * LEX_STRONG_PRIOR_SCALE if strong_lexical else EPSILON
+
+    breakdowns = {}
+    base_scores = {}
+    for rel, r in raw.items():
+        # Any query-derived signal present? (term hit, filename, path, def)
+        has_query_signal = (
+            bool(r["matched"]) or r["filename"] > 0
+            or r["path_aff"] > 0 or r["def_bonus"] > 0
+        )
+
+        # Fix #3 — noise-hub penalty: popularity is only positive when the
+        # file actually matched something query-derived; otherwise dock it.
+        if r["popularity"] > 0 and not has_query_signal:
+            pop_term = -NOISE_HUB_PENALTY * r["popularity"]
+            noise_hub = True
+        else:
+            pop_term = epsilon_eff * r["popularity"]
+            noise_hub = False
 
         total = (
-            bm
-            + ETA * prose_bm
-            + ALPHA * fn
-            + BETA * pa
-            + GAMMA * rc
-            + EPSILON * pop
-            + ZETA * defb
+            r["bm25"]
+            + ETA * r["prose"]
+            + ALPHA * r["filename"]
+            + BETA * r["path_aff"]
+            + gamma_eff * r["recency"]
+            + pop_term
+            + ZETA * r["def_bonus"]
         )
-        if total > 0 or matched:
+
+        # Fix #4 — callers-of boost. Defining files get a double boost so
+        # they outrank plain importers.
+        callers_boost = 0.0
+        if callers_target and rel in callers_importers:
+            callers_boost = CALLERS_BOOST
+            if rel in callers_defining:
+                callers_boost += CALLERS_BOOST
+            total += callers_boost
+
+        if total > 0 or r["matched"] or callers_boost > 0:
             breakdowns[rel] = {
-                "bm25": bm,
-                "prose": prose_bm,
-                "filename": fn,
-                "path_aff": pa,
-                "recency": rc,
-                "popularity": pop,
-                "def_bonus": defb,
-                "graph_prop": 0.0,
-                "matched_tokens": matched,
+                "bm25": r["bm25"], "prose": r["prose"],
+                "filename": r["filename"], "path_aff": r["path_aff"],
+                "recency": r["recency"], "popularity": r["popularity"],
+                "def_bonus": r["def_bonus"], "graph_prop": 0.0,
+                "matched_tokens": r["matched"],
+                "callers_boost": callers_boost,
+                "noise_hub": noise_hub,
             }
             base_scores[rel] = total
 
@@ -528,16 +652,23 @@ def rank(query: str, index: dict):
                 "bm25": 0.0, "prose": 0.0, "filename": 0.0, "path_aff": 0.0,
                 "recency": 0.0, "popularity": 0.0, "def_bonus": 0.0,
                 "graph_prop": b, "matched_tokens": set(),
+                "callers_boost": 0.0, "noise_hub": False,
             }
         else:
             breakdowns[rel]["graph_prop"] = b
         base_scores[rel] = base_scores.get(rel, 0.0) + b
 
     ranked = sorted(base_scores.items(), key=lambda kv: kv[1], reverse=True)
-    return ranked, breakdowns
+    meta = {
+        "callers_target": callers_target,
+        "callers_defining": callers_defining,
+        "strong_lexical": strong_lexical,
+        "max_bm": max_bm,
+    }
+    return ranked, breakdowns, meta
 
 
-def format_output(query, index, ranked, breakdowns, index_path):
+def format_output(query, index, ranked, breakdowns, meta, index_path):
     files = index.get("files", {})
     all_rels = list(files.keys())
     lines = []
@@ -554,14 +685,46 @@ def format_output(query, index, ranked, breakdowns, index_path):
         if warn:
             lines.append(warn)
 
-    # Low-confidence flag — fires when:
-    #   (a) no ranked results at all, or
+    # Callers-of mode banner (Fix #4)
+    callers_target = (meta or {}).get("callers_target")
+    callers_defining = (meta or {}).get("callers_defining") or set()
+    if callers_target:
+        if callers_defining:
+            lines.append(
+                f"[callers-of mode: '{callers_target}' "
+                f"({len(callers_defining)} defining file(s) found — reverse-import walk applied)]"
+            )
+        else:
+            lines.append(
+                f"[callers-of mode: no definition for '{callers_target}' in index "
+                "— falling back to lexical retrieval]"
+            )
+
+    # Low-confidence detection:
+    #   (a) no ranked results, or
     #   (b) top raw score below threshold, or
-    #   (c) top result has zero matched query tokens (pure popularity/recency
-    #       floor with no real term hit — the failure mode actually worth flagging).
-    top_matched = bool(breakdowns.get(ranked[0][0], {}).get("matched_tokens")) if ranked else False
-    if not ranked or ranked[0][1] < LOW_CONFIDENCE_SCORE or not top_matched:
-        lines.append("[low-confidence retrieval — consider rephrasing or use grep directly]")
+    #   (c) top result has no query-derived signal at all
+    #       (matched_tokens / filename / def_bonus / callers_boost).
+    low_conf = False
+    if not ranked:
+        low_conf = True
+    else:
+        top_rel, top_score = ranked[0]
+        top_b = breakdowns.get(top_rel, {})
+        top_has_signal = (
+            bool(top_b.get("matched_tokens"))
+            or top_b.get("filename", 0) > 0
+            or top_b.get("def_bonus", 0) > 0
+            or top_b.get("callers_boost", 0) > 0
+        )
+        if top_score < LOW_CONFIDENCE_SCORE or not top_has_signal:
+            low_conf = True
+
+    if low_conf:
+        lines.append(
+            "[low-confidence retrieval — paths only, no staged rationale. "
+            "Consider rephrasing or use grep directly]"
+        )
 
     lines.append("")
     lines.append(f"Staged context for: {query}")
@@ -571,10 +734,25 @@ def format_output(query, index, ranked, breakdowns, index_path):
         lines.append("  (no matches)")
         return "\n".join(lines)
 
-    # Pick top-K within token budget, plus test-file pairs
+    # Fix #5 — low-confidence: emit bare paths only (no rationales, no test pairs).
+    if low_conf:
+        emitted = 0
+        for rel, score in ranked:
+            if emitted >= TOP_K:
+                break
+            if score <= 0 and not breakdowns.get(rel, {}).get("matched_tokens"):
+                continue
+            lines.append(f"  - {rel}")
+            emitted += 1
+        if emitted == 0:
+            lines.append("  (no positive-scoring candidates)")
+        return "\n".join(lines)
+
+    # Fix #1 — always emit up to TOP_K paths. The previous budget cap
+    # was gating on file size even though we only output paths + a one-line
+    # rationale, which made the cap kick in arbitrarily on large files.
     chosen = []
     test_pairs = []
-    used_tokens = 0
     seen = set()
     for rel, score in ranked:
         if len(chosen) >= TOP_K:
@@ -583,13 +761,8 @@ def format_output(query, index, ranked, breakdowns, index_path):
             break
         if rel in seen:
             continue
-        entry = files.get(rel, {})
-        cost = estimate_tokens(entry)
-        if used_tokens + cost > STAGED_TOKEN_CAP and chosen:
-            break
         chosen.append((rel, score))
         seen.add(rel)
-        used_tokens += cost
 
         # Test partner — add as a paired result but don't count against TOP_K
         partner = find_test_partner(rel, all_rels)
@@ -629,8 +802,8 @@ def main():
         print("Then re-run /tokenhack <question>.")
         return 0  # not fatal — Claude can still proceed
 
-    ranked, breakdowns = rank(query, index)
-    print(format_output(query, index, ranked, breakdowns, path))
+    ranked, breakdowns, meta = rank(query, index)
+    print(format_output(query, index, ranked, breakdowns, meta, path))
     return 0
 
 

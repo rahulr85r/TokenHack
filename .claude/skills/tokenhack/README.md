@@ -47,6 +47,24 @@ Hub suppression: files imported by more than `HUB_FRACTION` of the corpus
 do not propagate scores to their neighbours (utility hubs like `utils.py`
 would otherwise drag the whole repo in).
 
+**Lexical-vs-prior balance.** When the corpus contains a strong term match
+(any file with `bm25 + η·prose ≥ LEX_STRONG_THRESHOLD`), the priors `GAMMA`
+(recency) and `EPSILON` (popularity) are scaled down to act as tie-breakers
+rather than primary signals. Filename, path-affinity, and definition bonuses
+are query-derived and are not scaled.
+
+**Noise-hub penalty.** A file with `popularity > 0` but no query-derived
+signal (no BM25 / prose hit, no filename match, no path affinity, no def
+bonus) is treated as a *negative* signal — popularity alone is not relevance.
+This catches the common failure mode where a popular utility file bubbles up
+on import-count prior despite being unrelated to the query.
+
+**Callers-of mode.** When the query matches a pattern like
+`callers of X`, `who calls X`, `where is X used`, `find usages of X`, the
+router locates files defining `X` and walks the reverse-import graph to
+boost their importers. Defining files get a double boost so they outrank
+plain importers. Falls back to lexical retrieval if no definition is found.
+
 ## Tunable constants (router.py)
 
 | Constant | Default | What it does |
@@ -65,8 +83,12 @@ would otherwise drag the whole repo in).
 | `HUB_FRACTION` | 0.10 | A file imported by >10% of repo is a "hub" |
 | `LOW_CONFIDENCE_SCORE` | 0.5 | Top score below → flag as low-confidence |
 | `STALE_INDEX_FILE_THRESHOLD` | 5 | Files changed since index build → warn |
+| `LEX_STRONG_THRESHOLD` | 2.0 | `max(bm25 + η·prose)` above this → strong lexical |
+| `LEX_STRONG_PRIOR_SCALE` | 0.25 | When strong lexical, multiply GAMMA/EPSILON by this |
+| `NOISE_HUB_PENALTY` | 0.8 | Penalty for popularity > 0 with no query-derived signal |
+| `CALLERS_BOOST` | 3.0 | Boost for "callers of X" reverse-import-graph hits |
 | `TOP_K` | 5 | How many ranked results to emit |
-| `STAGED_TOKEN_CAP` | 2000 | Max staged context (rough chars/4 estimate) |
+| `STAGED_TOKEN_CAP` | 10000 | Advisory only — router emits TOP_K paths regardless |
 
 Open a PR with rationale + measurements if you change any of these.
 
