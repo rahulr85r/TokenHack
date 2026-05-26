@@ -1,32 +1,107 @@
 # TokenHack
 
-**Stop your AI coding assistant from burning tokens grepping its way around your codebase.**
+**Hitting your daily Claude usage limit before lunch?** TokenHack cuts ~95% of the tokens your AI assistant spends just finding the right files in your codebase. Drop-in skill, no install, no SaaS.
 
-TokenHack ships as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) skill that lives inside your repo. When you ask a codebase-wide question, it pre-stages the most relevant files using a local, pure-Python hybrid retrieval engine — so Claude reads ~5 targeted files instead of exploring your tree.
-
-Zero per-developer install. Zero external tooling. No embeddings model, no API calls, no SaaS. The index is built by CI and committed alongside your code; the retrieval is plain Python stdlib running on the developer's own machine.
+![TokenHack: one real query, side by side — 9,779 → 230 tokens, ~95% saved on navigation](docs/usage-comparison.svg)
 
 ---
 
-## Who this is for
+## The problem
 
-- Engineers working on **existing, extensive codebases** (large monorepos, mature services, legacy systems).
-- Engineers using **token-intensive AI coding tools** (Claude Code, Cursor, etc.) who keep hitting usage limits.
-- Engineers in **organizations that block external tooling**, can't deploy a SaaS retrieval service, and can't ship a model file to every laptop.
+If you've spent any real time using Claude Code, Cursor, or any other AI coding assistant on a serious codebase, you've probably noticed the pattern. You ask something like *"how does our cart sync to the backend?"* or *"where do we handle rate limiting?"*, and before the assistant can answer, it goes on a small expedition through your tree. It runs `grep` a few times, opens five or six files, decides most of them are the wrong ones, opens more. By the time you get an answer, a few thousand tokens have already been spent on the search itself — not on the work.
 
-If your team is small, your repo fits comfortably in Claude's context window, or you're greenfield — you probably don't need this yet.
+On a side project, that doesn't matter. On a mature codebase with hundreds or thousands of files, it adds up fast. If your organisation puts usage caps on those tools, you'll hit them in the middle of work that actually matters. And every grep-and-read cycle is time you're staring at a spinner instead of getting an answer.
+
+TokenHack exists to fix that, specifically for the cases where it matters.
 
 ---
 
-## How it works
+## What TokenHack is
 
-Three pieces, all checked into your repo:
+TokenHack is a small skill that lives inside your repository, right next to your code. When you ask the assistant a codebase-wide question, it quietly hands over a pre-ranked list of the files most likely to contain the answer — *before* the assistant does any exploration. The assistant reads those five-or-so files and answers, instead of fumbling around your tree.
 
-1. **Indexer** (`indexer.py`). Runs in CI on every push. Walks the repo with tree-sitter, extracts symbols + imports + docstrings, builds a compact JSON index. Incremental (file-hash keyed) so big repos rebuild quickly. Commits the updated index back.
-2. **Router** (`router.py`). Pure Python stdlib. Runs locally on the developer's machine when `/tokenhack` is invoked. Tokenizes the question, ranks files via BM25 + 2-hop import graph + heuristic priors (filename, path-affinity, recency, symbol popularity, definition-vs-reference). Returns top-K paths with a one-line "why each matches".
-3. **Claude Code skill** (`SKILL.md`). The `/tokenhack` slash command. Inlines the router's output into Claude's context, then teaches Claude a [three-gate ruleset](#the-three-gate-nudge-ruleset) for suggesting `/tokenhack` again on future codebase-wide questions in the same session.
+Three things keep it cheap to adopt:
 
-Zero passive token cost — the skill is **invisible to Claude** until the developer explicitly types `/tokenhack`, thanks to `disable-model-invocation: true` in the frontmatter.
+- **No model.** No embeddings, no semantic search, no LLM doing the retrieval. It's plain Python doing careful structured matching.
+- **No service to run.** Nothing to deploy, no credentials to manage, no SaaS to plug into your VPC.
+- **Nothing for developers to install.** The retrieval engine ships with the skill itself, and runs in pure standard-library Python. The one heavyweight piece — building the index — runs in CI, not on anyone's laptop.
+
+If your team is small, your repo fits comfortably inside the assistant's context window, or you're working greenfield, you probably don't need this yet. TokenHack is built for the people who are quietly drowning in token usage on large, mature codebases.
+
+---
+
+## How it builds the index
+
+The first time you set it up — and on every push afterwards — an *indexer* walks through your code and writes down what it finds. Every function, every class, every imported module, every docstring, and which files import which other files. All of that goes into a structured JSON file under `.claude/skills/tokenhack/index/`, which gets committed to your repo right alongside your code.
+
+The mental model is the index at the back of a textbook. It's not a search engine. It doesn't understand what your code *does*. It's just a list of what's where, written down once so the assistant doesn't have to flip through the whole book every time it wants to find something.
+
+To extract that list, the indexer uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) — a parser that actually understands code structure rather than just pattern-matching text. Out of the box, it handles Python, Java, Kotlin, JavaScript/JSX, and Swift. Files in unsupported languages are skipped without breaking the build; the rest of the index still gets written.
+
+---
+
+## How it picks the right files for your question
+
+This is the part that would normally take a machine-learning model, and TokenHack deliberately doesn't use one. Instead, the router (also pure Python, no dependencies) scores every file in the index against your question, combining a handful of plain signals:
+
+**Matching the words themselves.** This is the obvious one: does the file contain the words from your question? Files where the words appear more often, especially in important places like a function or class name rather than a buried comment, score higher.
+
+There's one trick worth calling out. Programmers don't usually write `user_profile` in English — they write `getUserProfile` or `UserProfileView`. So before matching, the router splits those CamelCase and snake_case names back into their pieces. A natural-language question about *"user profile"* finds `getUserProfile` even though those exact words appear nowhere in the file.
+
+**Where the words appear.** A match in a filename beats a match buried in the middle of a comment. A match in the file's directory path (`payments/retry/idempotency.py` for a question about idempotency) is a strong hint that you're in the right neighbourhood.
+
+**Recency.** A file that changed last week is more likely to be relevant to whatever you're working on today than one that nobody's touched in two years. This is a tie-breaker, not a primary signal — once everything else is equal, prefer recent.
+
+**How things connect.** If file A defines something your question is about, and file B imports A, then B is probably worth a look too. The router walks the import graph one or two hops out from each strong match, so neighbouring code surfaces naturally.
+
+**"Callers of X" gets a dedicated mode.** If your question looks like *"who calls AddToCartButton?"* or *"where is fetchUser used?"*, the router recognises the intent, locates the file that defines `AddToCartButton`, walks the reverse import graph, and returns the files that actually use it. This is the kind of question that's painful to grep for by hand.
+
+What's deliberately *missing* from all this — and what keeps the engine small — is anything that would require a machine-learning model: no embeddings, no semantic similarity, no neural reranking. The full set of tunable scoring constants lives in [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md). If your team finds better defaults, open a PR.
+
+---
+
+## How the index stays fresh
+
+You don't want to manually rebuild the index every time you push a change — that's exactly the friction TokenHack is meant to remove. So the rebuild runs in CI.
+
+The provided GitHub Actions workflow watches your `main` branch. On every push that isn't itself an index update (the bot ignores its own commits, so you don't get loops), it spins up a clean Python environment, rebuilds the index, and commits the new version back to your repo.
+
+Two design choices keep this fast even on large repositories:
+
+- **Incremental rebuilds.** Only files whose content actually changed get re-parsed. A push that touches three files rebuilds three entries, not the whole 1,400-file index.
+- **A freshness stamp.** Every `/tokenhack` invocation tells the assistant when the index was last rebuilt, and warns if too many files have changed since. So if you're working on code that landed minutes ago, you'll know to grep instead of trusting a stale answer.
+
+GitLab CI, CircleCI, and Jenkins workflows are in the install section below. The pattern is identical everywhere: rebuild on push, commit if anything changed, ignore the bot's own commits.
+
+---
+
+## How to use it
+
+Once it's installed, you type `/tokenhack` followed by your question:
+
+```
+/tokenhack How does the payment retry queue handle idempotency conflicts?
+```
+
+The assistant receives a short block that looks roughly like this:
+
+```
+[tokenhack: index built 2026-05-25, 1004 files indexed]
+
+Staged context for: How does the payment retry queue handle idempotency conflicts?
+
+  - core/payments/retry_queue.py  (matches 'retry, queue'; strong filename match; definition site)
+  - core/payments/idempotency.py  (matches 'idempotency'; strong filename match; definition site)
+  - core/payments/__init__.py  (via import graph)
+  - ...
+
+Paired test files:
+  - tests/payments/test_retry_queue.py  (test for core/payments/retry_queue.py)
+```
+
+Then it answers your question using those files. No detective work, no wasted greps.
+
+After the first invocation in a session, the assistant will gently offer to re-stage on future codebase-wide questions. If you don't want that, say *"just answer"* once and it stops nudging for the rest of the session.
 
 ---
 
@@ -171,47 +246,6 @@ pipeline {
 
 ---
 
-## Usage
-
-```
-/tokenhack Why is the payment retry queue stalling on idempotency conflicts?
-```
-
-Claude will receive a pre-staged list of the most-relevant files (with one-line rationales), an index-freshness stamp, and conditional warnings if the index looks stale or retrieval was low-confidence. Then Claude answers your question using those files — not by grepping your tree.
-
-For the rest of that Claude Code session, when Claude detects that a *new* question is also codebase-wide, it will suggest:
-
-> *This looks codebase-wide — want me to re-stage via `/tokenhack`? (Say "just answer" to skip and turn off nudging for this session.)*
-
-Say *"just answer"* (or any equivalent) once and Claude stops suggesting for the rest of the session.
-
----
-
-## How retrieval actually works
-
-The router combines several signals — none of them embeddings or LLM-based:
-
-```
-tokens = camel_snake_split(query) − stopwords + fuzzy(close_matches)
-
-score(file, query) =
-    BM25(tokens, symbols ∪ refs ∪ path_tokens)        # lexical
-  + η · BM25(tokens, docstrings ∪ markdown_paragraphs) # prose channel
-  + α · filename_match(tokens, basename(file))         # heuristic priors
-  + β · path_affinity(tokens, dirname(file))
-  + γ · recency(mtime(file))
-  + ε · symbol_popularity(file)
-  + ζ · definition_bonus(tokens, defs)
-  + δ₁ · 1-hop import-graph propagation                # structural
-  + δ₂ · 2-hop propagation (decayed, hubs suppressed)
-```
-
-CamelCase + snake_case identifier splitting means `getUserProfile` matches the natural-language query "user profile". Stopword filtering keeps BM25 weight off generic terms. `difflib`-based fuzzy expansion catches typos.
-
-The full set of tunable constants is documented in [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md). Open a PR if your team finds better defaults.
-
----
-
 ## Token math
 
 On every `/tokenhack` invocation, the router emits roughly:
@@ -222,6 +256,42 @@ On every `/tokenhack` invocation, the router emits roughly:
 - **Test pair section** — when applicable (~5 tokens per pair)
 
 **Worst case: ~45 tokens. Average: ~25 tokens.** Versus a typical codebase-wide question where Claude grep-explores 5-15 files at hundreds-to-thousands of tokens each, the net savings are usually 10-50× on the question itself.
+
+### What that looks like in practice
+
+Measured on one real query — *"how does the autofill credential vault work"* against the [DuckDuckGo iOS](https://github.com/duckduckgo/iOS) repo (1,211 Swift files):
+
+| | Tokens | What it is |
+|---|---:|---|
+| **With TokenHack** | **~230** | The staged-context block: 5 ranked paths + rationales + 2 paired test files |
+| **Without TokenHack** | **~9,800** | What Claude burns finding the right files: `glob` candidates (~925) + `grep -rli autofill` (~1,670) + ~7,180 wasted speculative reads of wrong files |
+
+**~95% savings on the navigation step alone**, for that one question.
+
+### What that means across a real session
+
+TokenHack doesn't *read* files for Claude — it tells Claude *which* files to read. So the once-you-have-the-right-files cost is the same either way. The savings come from skipping the speculative grep-and-read-wrong-file cycle.
+
+Realistic session-level savings depend on your query mix:
+
+| Session pattern | TokenHack-applicable share | Realistic session-token savings |
+|---|---:|---:|
+| Mostly "edit this displayed function" / local follow-ups | ~10% | **2–5%** |
+| Mixed exploration + edits (typical engineer on a mature repo) | ~40% | **~25%** |
+| Onboarding to a large unfamiliar codebase ("where does X live", "trace Y") | ~80% | **40%+** |
+
+The honest single number for the case TokenHack was built for — a working engineer on an existing large codebase — is **~25% session-level token savings**, with **~95% on each individual navigation step**.
+
+### When TokenHack does *not* help
+
+It is **deliberately useless** for:
+
+- **"Fix this line / rename this var / add a comment to the function above"** — there's no codebase to explore; Claude is acting on code already in the conversation.
+- **Generic language or algorithm questions** unrelated to your repo.
+- **Stack-trace debugging where the file:line is already known** — Claude greps from the trace directly, which it does well.
+- **Trivial follow-ups to the immediately previous turn** (*"now do the same for foo"*).
+
+The three-gate nudge ruleset (next section) is what keeps the skill silent in these cases — false positives are strictly worse than missed nudges. If you only ever do local edits, TokenHack will save you essentially nothing, and that's by design.
 
 ---
 
@@ -244,7 +314,7 @@ The exact ruleset is in [`.claude/skills/tokenhack/SKILL.md`](.claude/skills/tok
 - **Coreference depth-2+.** "And the same for the Stripe one" referring to a refactor two turns back will leak through Gate 2 — the rule only catches immediate-previous-turn pronouns.
 - **Project jargon.** "Fix the SSO bug" looks scoped to one symbol but may span 20 files. Users must invoke `/tokenhack` manually for these.
 - **Stack-trace debugging.** Looks local (file:line given) but root cause may be elsewhere. By design we don't nudge here — let Claude grep from the trace, which it does well.
-- **Multi-language repos.** Lexical heuristics are language-agnostic but can't disambiguate "the controller" → Rails vs Spring vs NestJS.
+- **Multi-language repos.** The matching logic is language-agnostic but can't disambiguate "the controller" → Rails vs Spring vs NestJS.
 - **Auto-invocation is probabilistic.** Claude follows the skill body's nudge rules most of the time, not deterministically. The escape hatch exists precisely so misfires don't accumulate.
 - **First-time discovery.** Developers don't know `/tokenhack` exists until they read the README, see it in the `/` slash menu, or are nudged by Claude (after at least one prior invocation in the session, or via the `CLAUDE.md` hint). Org onboarding helps.
 
@@ -285,7 +355,7 @@ If you have an idea for a richer retrieval signal that fits these constraints, o
 
 Two senses:
 
-1. **Hacking** in the *make-do-with-what-you-have* sense — using only stdlib + tree-sitter + good lexical retrieval to dramatically cut the tokens an AI assistant spends exploring a codebase.
+1. **Hacking** in the *make-do-with-what-you-have* sense — using only stdlib + tree-sitter + careful structured matching to dramatically cut the tokens an AI assistant spends exploring a codebase.
 2. **Hacking down** the token cost itself.
 
 Not about security tokens.

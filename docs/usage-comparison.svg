@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900" font-family="ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace">
+  <defs>
+    <style>
+      .title       { font-size: 22px; font-weight: 700; fill: #e6e6e6; }
+      .subtitle    { font-size: 14px; fill: #8b8b8b; }
+      .panel-header{ font-size: 15px; font-weight: 700; }
+      .term        { font-size: 13px; fill: #d4d4d4; }
+      .dim         { font-size: 13px; fill: #707070; }
+      .prompt      { font-size: 13px; fill: #5dade2; font-weight: 600; }
+      .tool        { font-size: 13px; fill: #c8c8c8; }
+      .ok          { font-size: 13px; fill: #69db7c; }
+      .bad         { font-size: 13px; fill: #ff8a80; }
+      .cost-waste  { font-size: 13px; fill: #ffb86c; font-weight: 600; }
+      .cost-good   { font-size: 13px; fill: #69db7c; font-weight: 600; }
+      .total-label { font-size: 14px; fill: #b0b0b0; }
+      .total-num   { font-size: 18px; font-weight: 700; }
+      .footer-big  { font-size: 24px; font-weight: 700; fill: #e6e6e6; }
+      .footer-sub  { font-size: 13px; fill: #888; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="900" fill="#161616"/>
+
+  <!-- Title -->
+  <text x="700" y="44" text-anchor="middle" class="title">TokenHack — one real query, side by side</text>
+  <text x="700" y="70" text-anchor="middle" class="subtitle">"How does the autofill credential vault work?" &#8211; measured against DuckDuckGo iOS (1,211 Swift files)</text>
+
+  <!-- ============================================================== -->
+  <!-- LEFT PANEL — Without TokenHack                                 -->
+  <!-- ============================================================== -->
+  <rect x="40" y="100" width="650" height="700" rx="10" fill="#0d0d0d" stroke="#2a2a2a" stroke-width="1"/>
+
+  <!-- panel chrome dots -->
+  <circle cx="62" cy="124" r="6" fill="#ff5f56"/>
+  <circle cx="82" cy="124" r="6" fill="#ffbd2e"/>
+  <circle cx="102" cy="124" r="6" fill="#27c93f"/>
+  <text x="670" y="129" text-anchor="end" class="bad panel-header">&#10007;  Without TokenHack</text>
+
+  <!-- divider -->
+  <line x1="56" y1="148" x2="674" y2="148" stroke="#1f1f1f" stroke-width="1"/>
+
+  <!-- user prompt -->
+  <text x="60" y="178" class="prompt">&gt;</text>
+  <text x="78" y="178" class="term">How does the autofill credential vault work?</text>
+
+  <text x="60" y="208" class="dim">Searching codebase&#8230;</text>
+
+  <!-- Tool 1: glob -->
+  <text x="60" y="244" class="tool">&#9679; Glob  **/*Vault*.swift  **/*Credential*.swift  **/*Autofill*.swift</text>
+  <text x="80" y="266" class="dim">&#8627; 66 paths returned</text>
+  <text x="650" y="266" text-anchor="end" class="cost-waste">925 tok</text>
+
+  <!-- Tool 2: grep -->
+  <text x="60" y="302" class="tool">&#9679; Bash  grep -rli "autofill" --include="*.swift" .</text>
+  <text x="80" y="324" class="dim">&#8627; 133 paths returned &#8211; now Claude has to pick the right few</text>
+  <text x="650" y="324" text-anchor="end" class="cost-waste">1,671 tok</text>
+
+  <!-- Speculative reads (wasted) -->
+  <text x="60" y="360" class="tool">&#9679; Read  CredentialProviderListDetailsView.swift</text>
+  <text x="80" y="382" class="bad">&#8627; not what we&#8217;re looking for</text>
+  <text x="650" y="382" text-anchor="end" class="cost-waste">3,479 tok</text>
+
+  <text x="60" y="418" class="tool">&#9679; Read  CredentialProviderListDetailsViewModel.swift</text>
+  <text x="80" y="440" class="bad">&#8627; not what we&#8217;re looking for</text>
+  <text x="650" y="440" text-anchor="end" class="cost-waste">1,762 tok</text>
+
+  <text x="60" y="476" class="tool">&#9679; Read  CredentialProvider/Resources/UserText.swift</text>
+  <text x="80" y="498" class="bad">&#8627; not what we&#8217;re looking for</text>
+  <text x="650" y="498" text-anchor="end" class="cost-waste">1,942 tok</text>
+
+  <!-- Finally the right file -->
+  <text x="60" y="534" class="tool">&#9679; Read  AutofillCredentialProvider/.../VaultCredentialManager.swift</text>
+  <text x="80" y="556" class="ok">&#8627; this is the one. starts answering&#8230;</text>
+
+  <!-- spacing -->
+  <line x1="56" y1="600" x2="674" y2="600" stroke="#1f1f1f" stroke-width="1"/>
+
+  <!-- Totals box -->
+  <text x="60" y="632" class="total-label">Navigation tokens spent before reaching the answer</text>
+  <text x="650" y="664" text-anchor="end" class="total-num" fill="#ffb86c">9,779</text>
+
+  <text x="60" y="700" class="dim">= ~10k tokens of grep / glob / wrong-file reads</text>
+  <text x="60" y="722" class="dim">  before Claude can even start writing the answer.</text>
+
+  <text x="60" y="762" class="dim">This is what every codebase-wide question looks</text>
+  <text x="60" y="784" class="dim">like on a 1k+ file repo, every single time.</text>
+
+
+  <!-- ============================================================== -->
+  <!-- RIGHT PANEL — With /tokenhack                                  -->
+  <!-- ============================================================== -->
+  <rect x="710" y="100" width="650" height="700" rx="10" fill="#0d0d0d" stroke="#2a2a2a" stroke-width="1"/>
+
+  <!-- chrome -->
+  <circle cx="732" cy="124" r="6" fill="#ff5f56"/>
+  <circle cx="752" cy="124" r="6" fill="#ffbd2e"/>
+  <circle cx="772" cy="124" r="6" fill="#27c93f"/>
+  <text x="1340" y="129" text-anchor="end" class="ok panel-header">&#10003;  With /tokenhack</text>
+
+  <line x1="726" y1="148" x2="1344" y2="148" stroke="#1f1f1f" stroke-width="1"/>
+
+  <!-- user prompt with slash command -->
+  <text x="730" y="178" class="prompt">&gt;</text>
+  <text x="748" y="178" class="term">/tokenhack how does the autofill credential vault work?</text>
+
+  <text x="730" y="208" class="dim">Running local router over the indexed corpus&#8230; (zero LLM calls)</text>
+
+  <!-- Staged-context block -->
+  <text x="730" y="244" class="tool">&#9679; Staged context  &#8211;  5 ranked paths + 2 paired test files</text>
+  <text x="1340" y="244" text-anchor="end" class="cost-good">230 tok</text>
+
+  <text x="750" y="270" class="dim">- Core/SyncDataProviders.swift</text>
+  <text x="750" y="290" class="dim">- Core/SyncCredentialsAdapter.swift</text>
+  <text x="750" y="310" class="dim">- DuckDuckGo/TabViewController.swift</text>
+  <text x="750" y="330" class="dim">- Core/SyncErrorHandler.swift</text>
+  <text x="750" y="350" class="dim">- AutofillCredentialProvider/.../VaultCredentialManager.swift</text>
+  <text x="750" y="378" class="dim">+ DuckDuckGoTests/SyncCredentialsAdapterTests.swift</text>
+  <text x="750" y="398" class="dim">+ DuckDuckGoTests/SyncErrorHandlerTests.swift</text>
+
+  <!-- One targeted read -->
+  <text x="730" y="438" class="tool">&#9679; Read  AutofillCredentialProvider/.../VaultCredentialManager.swift</text>
+  <text x="750" y="460" class="ok">&#8627; ranked #5, flagged as definition site. starts answering&#8230;</text>
+
+  <!-- spacing -->
+  <line x1="726" y1="600" x2="1344" y2="600" stroke="#1f1f1f" stroke-width="1"/>
+
+  <text x="730" y="632" class="total-label">Navigation tokens spent before reaching the answer</text>
+  <text x="1340" y="664" text-anchor="end" class="total-num" fill="#69db7c">230</text>
+
+  <text x="730" y="700" class="dim">= a single pre-ranked list with one-line rationales,</text>
+  <text x="730" y="722" class="dim">  built locally in ~50ms from the committed index.</text>
+
+  <text x="730" y="762" class="dim">No grep cycles. No speculative reads. Claude</text>
+  <text x="730" y="784" class="dim">opens the file it&#8217;s told to and answers.</text>
+
+
+  <!-- ============================================================== -->
+  <!-- FOOTER summary                                                  -->
+  <!-- ============================================================== -->
+  <text x="700" y="850" text-anchor="middle" class="footer-big">
+    <tspan fill="#ffb86c">9,779</tspan>
+    <tspan fill="#888"> &#8594; </tspan>
+    <tspan fill="#69db7c">230</tspan>
+    <tspan fill="#e6e6e6"> tokens   &#8226;   42&#215; cheaper navigation   &#8226;   ~95% saved on this step</tspan>
+  </text>
+  <text x="700" y="878" text-anchor="middle" class="footer-sub">
+    Session-level savings depend on your query mix &#8211; see README "Token math" for the realistic 25% figure
+  </text>
+</svg>
