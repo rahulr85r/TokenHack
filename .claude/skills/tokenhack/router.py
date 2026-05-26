@@ -61,6 +61,20 @@ NOISE_HUB_PENALTY = 0.8
 # results dominate the ranking when the mode fires.
 CALLERS_BOOST = 3.0
 
+# Graph-propagation seed gating. A single match on a low-IDF token like
+# `get` produces a small but non-trivial BM25 score in every file that
+# contains many `get_*` methods. In a 1k+ file corpus, hundreds of files
+# can pass any fixed score floor at once, and they collectively radiate
+# thousands of graph_prop points into well-connected destinations, burying
+# the actual target. We address this two ways:
+#   1) MIN_LEX_SEED: a hard floor below which no file seeds at all.
+#   2) MAX_LEX_SEEDS: only the top-N files by lex score actually propagate,
+#      so common-token explosions ("matched 'get' in 300 files") cannot
+#      all participate simultaneously. Files below the cutoff still rank
+#      by their own lexical signal — they just don't *radiate* it.
+MIN_LEX_SEED = 1.0
+MAX_LEX_SEEDS = 25
+
 TOP_K = 5
 STAGED_TOKEN_CAP = 10000         # advisory only; path-list output is cheap,
                                  # so the router emits TOP_K paths regardless.
@@ -612,6 +626,14 @@ def rank(query: str, index: dict):
 
     breakdowns = {}
     base_scores = {}
+    # Lexical seeds drive graph propagation independently of priors. Recency
+    # and popularity make almost every file in an actively-modified repo a
+    # positive seed under base_scores, which inflates graph_prop into the
+    # thousands for well-connected hubs and buries the actual targets. By
+    # seeding only on query-derived evidence (BM25 / prose / filename /
+    # path / def / callers_boost) we keep priors as tie-breakers in the
+    # final ranking while preventing them from poisoning propagation.
+    lexical_seeds = {}
     for rel, r in raw.items():
         # Any query-derived signal present? (term hit, filename, path, def)
         has_query_signal = (
@@ -647,6 +669,17 @@ def rank(query: str, index: dict):
                 callers_boost += CALLERS_BOOST
             total += callers_boost
 
+        lex = (
+            r["bm25"]
+            + ETA * r["prose"]
+            + ALPHA * r["filename"]
+            + BETA * r["path_aff"]
+            + ZETA * r["def_bonus"]
+            + callers_boost
+        )
+        if (lex >= MIN_LEX_SEED and has_query_signal) or callers_boost > 0:
+            lexical_seeds[rel] = lex
+
         if total > 0 or r["matched"] or callers_boost > 0:
             breakdowns[rel] = {
                 "bm25": r["bm25"], "prose": r["prose"],
@@ -659,9 +692,23 @@ def rank(query: str, index: dict):
             }
             base_scores[rel] = total
 
-    # Graph propagation from non-zero base hits
-    bonus = graph_propagation(base_scores, fwd, rev, hub_set)
+    # Cap to top-N lexical seeds to prevent common-token explosions
+    # ("matched 'get' across 300 files") from collectively flooding the
+    # import graph with low-quality propagation. Strong matches (multi-
+    # token, filename, def, callers_boost) tend to rank above noise.
+    if len(lexical_seeds) > MAX_LEX_SEEDS:
+        top_seeds = sorted(lexical_seeds.items(), key=lambda kv: kv[1], reverse=True)[:MAX_LEX_SEEDS]
+        lexical_seeds = dict(top_seeds)
+
+    # Graph propagation seeded from lexical signals only (see comment above).
+    bonus = graph_propagation(lexical_seeds, fwd, rev, hub_set)
     for rel, b in bonus.items():
+        # In callers-of mode with a resolved defining file, restrict graph
+        # propagation credit to the actual caller set. Otherwise unrelated
+        # files (e.g. agent base classes that happen to match `get`) pile
+        # up bonus from the import graph and outrank the real target.
+        if callers_target and callers_defining and rel not in callers_importers:
+            continue
         if rel not in breakdowns:
             breakdowns[rel] = {
                 "bm25": 0.0, "prose": 0.0, "filename": 0.0, "path_aff": 0.0,

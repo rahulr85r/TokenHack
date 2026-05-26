@@ -64,6 +64,18 @@ on import-count prior despite being unrelated to the query.
 router locates files defining `X` and walks the reverse-import graph to
 boost their importers. Defining files get a double boost so they outrank
 plain importers. Falls back to lexical retrieval if no definition is found.
+Graph-propagation credit is *restricted* to the caller set in this mode,
+so unrelated files that happen to match common tokens like `get` cannot
+accumulate inflated graph_prop and bury the actual target.
+
+**Lexical-only graph propagation.** Recency and popularity are still
+summed into the final ranking but are not allowed to *seed* the import
+graph. In an actively-modified repo nearly every file has high recency,
+which would otherwise make almost every file a propagation seed and
+inflate well-connected destinations into thousands of graph_prop points.
+A further hard cap (`MAX_LEX_SEEDS`) limits propagation to the top-N
+lexical seeds, preventing common-token explosions (e.g. matching `get`
+in 300 files at once) from collectively dominating the graph.
 
 ## Tunable constants (router.py)
 
@@ -87,6 +99,8 @@ plain importers. Falls back to lexical retrieval if no definition is found.
 | `LEX_STRONG_PRIOR_SCALE` | 0.25 | When strong lexical, multiply GAMMA/EPSILON by this |
 | `NOISE_HUB_PENALTY` | 0.8 | Penalty for popularity > 0 with no query-derived signal |
 | `CALLERS_BOOST` | 3.0 | Boost for "callers of X" reverse-import-graph hits |
+| `MIN_LEX_SEED` | 1.0 | Floor below which a file cannot seed graph propagation |
+| `MAX_LEX_SEEDS` | 25 | Hard cap on the number of files allowed to seed graph propagation (top-N by lex score) |
 | `TOP_K` | 5 | How many ranked results to emit |
 | `STAGED_TOKEN_CAP` | 10000 | Advisory only — router emits TOP_K paths regardless |
 
