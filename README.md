@@ -323,7 +323,13 @@ The exact ruleset is in [`.claude/skills/tokenhack/SKILL.md`](.claude/skills/tok
 
 ## Contributing
 
-TokenHack is intentionally small, single-purpose, and stdlib-only on the dev side. PRs welcome — see [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md) for adapter internals.
+TokenHack is intentionally small, single-purpose, and stdlib-only on the dev side. PRs welcome.
+
+**Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.** It covers the fork-and-PR workflow, commit style, and how to test your change locally. The short version: fork the repo, create a feature branch, push to your fork, open a PR back to `rahulr85r/TokenHack:main`. Direct pushes to `main` are blocked for everyone but the maintainer.
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to abide by its terms.
+
+### Where to start
 
 **Sharply scoped first-PR opportunities** (each is a few hours of work and has a clear, testable surface):
 
@@ -342,7 +348,7 @@ TokenHack is intentionally small, single-purpose, and stdlib-only on the dev sid
 - Query intent classification (explanation vs modification vs search).
 - Result diversification / top-K auto-tuning.
 
-Open an issue first for the larger items — we can scope together before code.
+Open an issue first for the larger items — we can scope together before code. Internal architecture details live in [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md).
 
 **What stays out** (intentionally, to preserve the load-bearing constraints):
 
