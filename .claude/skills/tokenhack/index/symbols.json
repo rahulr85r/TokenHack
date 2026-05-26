@@ -6,8 +6,8 @@
     "swift": true
   },
   "build_seconds": 0.01,
-  "built_at": "2026-05-25T23:57:22+00:00",
-  "built_at_commit": "7f507180ebbd7dd6ffce89a6b6dc95599183e82b",
+  "built_at": "2026-05-26T00:47:39+00:00",
+  "built_at_commit": "613ba31ade44fa5393f8431001925ca7ed01c85a",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -527,7 +527,7 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1779753440,
+      "mtime": 1779756456,
       "prose_paragraphs": [
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
@@ -565,6 +565,7 @@
         "cwd",
         "definition_bonus",
         "detect_callers_target",
+        "dict",
         "dirname",
         "endswith",
         "exists",
@@ -622,155 +623,155 @@
         "update",
         "values"
       ],
-      "size_chars": 30123,
+      "size_chars": 32690,
       "symbols": [
         {
           "kind": "def",
-          "line": 88,
+          "line": 102,
           "name": "split_identifier",
           "signature": "def split_identifier(token: str):"
         },
         {
           "kind": "def",
-          "line": 100,
+          "line": 114,
           "name": "tokenize",
           "signature": "def tokenize(text: str):"
         },
         {
           "kind": "def",
-          "line": 129,
+          "line": 143,
           "name": "fuzzy_expand",
           "signature": "def fuzzy_expand(tokens, vocabulary):"
         },
         {
           "kind": "def",
-          "line": 161,
+          "line": 175,
           "name": "detect_callers_target",
           "signature": "def detect_callers_target(query: str):"
         },
         {
           "kind": "def",
-          "line": 174,
+          "line": 188,
           "name": "find_callers_files",
           "signature": "def find_callers_files(target: str, files: dict, reverse_graph: dict):"
         },
         {
           "kind": "def",
-          "line": 197,
+          "line": 211,
           "name": "find_index_path",
           "signature": "def find_index_path() -> Path:"
         },
         {
           "kind": "def",
-          "line": 207,
+          "line": 221,
           "name": "load_index",
           "signature": "def load_index():"
         },
         {
           "kind": "def",
-          "line": 222,
+          "line": 236,
           "name": "build_corpus",
           "signature": "def build_corpus(index):"
         },
         {
           "kind": "def",
-          "line": 269,
+          "line": 283,
           "name": "channel_idf_avgdl",
           "signature": "def channel_idf_avgdl(channel):"
         },
         {
           "kind": "def",
-          "line": 306,
+          "line": 320,
           "name": "bm25_score",
           "signature": "def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):"
         },
         {
           "kind": "def",
-          "line": 327,
+          "line": 341,
           "name": "filename_match",
           "signature": "def filename_match(query_tokens, rel_path):"
         },
         {
           "kind": "def",
-          "line": 340,
+          "line": 354,
           "name": "path_affinity",
           "signature": "def path_affinity(query_tokens, rel_path):"
         },
         {
           "kind": "def",
-          "line": 354,
+          "line": 368,
           "name": "recency_score",
           "signature": "def recency_score(mtime, now):"
         },
         {
           "kind": "def",
-          "line": 362,
+          "line": 376,
           "name": "popularity_score",
           "signature": "def popularity_score(entry, max_pop):"
         },
         {
           "kind": "def",
-          "line": 368,
+          "line": 382,
           "name": "definition_bonus",
           "signature": "def definition_bonus(query_tokens, entry):"
         },
         {
           "kind": "def",
-          "line": 383,
+          "line": 397,
           "name": "identify_hubs",
           "signature": "def identify_hubs(reverse_graph, n_files):"
         },
         {
           "kind": "def",
-          "line": 389,
+          "line": 403,
           "name": "graph_propagation",
           "signature": "def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):"
         },
         {
           "kind": "def",
-          "line": 403,
+          "line": 417,
           "name": "neighbors_of",
           "signature": "def neighbors_of(rel):"
         },
         {
           "kind": "def",
-          "line": 435,
+          "line": 449,
           "name": "find_test_partner",
           "signature": "def find_test_partner(rel, all_rels):"
         },
         {
           "kind": "def",
-          "line": 472,
+          "line": 486,
           "name": "build_why",
           "signature": "def build_why(breakdown):"
         },
         {
           "kind": "def",
-          "line": 509,
+          "line": 523,
           "name": "check_staleness",
           "signature": "def check_staleness(index, root: Path):"
         },
         {
           "kind": "def",
-          "line": 544,
+          "line": 558,
           "name": "estimate_tokens",
           "signature": "def estimate_tokens(entry):"
         },
         {
           "kind": "def",
-          "line": 549,
+          "line": 563,
           "name": "rank",
           "signature": "def rank(query: str, index: dict):"
         },
         {
           "kind": "def",
-          "line": 686,
+          "line": 733,
           "name": "format_output",
           "signature": "def format_output(query, index, ranked, breakdowns, meta, index_path):"
         },
         {
           "kind": "def",
-          "line": 805,
+          "line": 852,
           "name": "main",
           "signature": "def main():"
         }
@@ -778,8 +779,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 2,
-  "n_files_reused": 6,
+  "n_files_parsed": 1,
+  "n_files_reused": 7,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
@@ -791,7 +792,8 @@
       "Hub suppression: files imported by more than `HUB_FRACTION` of the corpus do not propagate scores to their neighbours (utility hubs like `utils.py` would otherwise drag the whole repo in).",
       "**Lexical-vs-prior balance.** When the corpus contains a strong term match (any file with `bm25 + η·prose ≥ LEX_STRONG_THRESHOLD`), the priors `GAMMA` (recency) and `EPSILON` (popularity) are scaled down to act as tie-breakers rather than primary signals. Filename, path-affinity, and definition bonuses are query-derived and are not scaled.",
       "**Noise-hub penalty.** A file with `popularity > 0` but no query-derived signal (no BM25 / prose hit, no filename match, no path affinity, no def bonus) is treated as a *negative* signal — popularity alone is not relevance. This catches the common failure mode where a popular utility file bubbles up on import-count prior despite being unrelated to the query.",
-      "**Callers-of mode.** When the query matches a pattern like `callers of X`, `who calls X`, `where is X used`, `find usages of X`, the router locates files defining `X` and walks the reverse-import graph to boost their importers. Defining files get a double boost so they outrank plain importers. Falls back to lexical retrieval if no definition is found.",
+      "**Callers-of mode.** When the query matches a pattern like `callers of X`, `who calls X`, `where is X used`, `find usages of X`, the router locates files defining `X` and walks the reverse-import graph to boost their importers. Defining files get a double boost so they outrank plain importers. Falls back to lexical retrieval if no definition is found. Graph-propagation credit is *restricted* to th…",
+      "**Lexical-only graph propagation.** Recency and popularity are still summed into the final ranking but are not allowed to *seed* the import graph. In an actively-modified repo nearly every file has high recency, which would otherwise make almost every file a propagation seed and inflate well-connected destinations into thousands of graph_prop points. A further hard cap (`MAX_LEX_SEEDS`) limits pro…",
       "## Tunable constants (router.py)",
       "| Constant | Default | What it does | |---|---|---| | `ALPHA` | 1.5 | Weight of filename-match hits | | `BETA` | 1.0 | Weight of path-affinity hits | | `GAMMA` | 0.5 | Weight of recency decay | | `EPSILON` | 0.3 | Weight of symbol popularity (incoming imports) | | `ZETA` | 0.5 | Bonus per matched definition name | | `DELTA_1HOP` | 1.0 | 1-hop import-graph propagation | | `DELTA_2HOP` | 0.3 | 2-hop…",
       "Open a PR with rationale + measurements if you change any of these.",
