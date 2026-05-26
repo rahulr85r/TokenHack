@@ -1,6 +1,7 @@
 # TokenHack
 
-**Hitting your daily Claude usage limit before lunch?** TokenHack cuts ~95% of the tokens your AI assistant spends just finding the right files in your codebase. Drop-in skill, no install, no SaaS.
+### Hitting your daily Claude usage limit before lunch?
+### TokenHack cuts ~95% of the tokens your AI assistant spends just finding the right files in your codebase. Drop-in skill, no install, no SaaS.
 
 ![TokenHack: one real query, side by side — 9,779 → 230 tokens, ~95% saved on navigation](docs/usage-comparison.svg)
 
