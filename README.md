@@ -331,6 +331,8 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 ### Where to start
 
+The full roadmap — near-term, medium-term, and out-of-scope items — lives in [`ROADMAP.md`](ROADMAP.md). The short list below is the quick-pick subset.
+
 **Sharply scoped first-PR opportunities** (each is a few hours of work and has a clear, testable surface):
 
 - **TypeScript adapter.** Extend `adapters/javascript.py` to handle `.ts` and `.tsx`. The grammars share ~95% of node types. *(Highest-impact contribution — the majority of modern React / Vue codebases.)*
