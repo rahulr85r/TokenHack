@@ -61,6 +61,26 @@ NOISE_HUB_PENALTY = 0.8
 # results dominate the ranking when the mode fires.
 CALLERS_BOOST = 3.0
 
+# Impl-pattern boost — for interface-heavy codebases (Java, JDK, much of
+# Spring/netty/JDBC) where the conceptual name lives on an interface and the
+# answer to "how does X work" lives in a `Default*` / `Abstract*` / `*Impl`
+# sibling. The interface normally wins filename_match because its full stem
+# matches the query verbatim (e.g. `ChannelPipeline.java` matches the token
+# `channelpipeline`; `DefaultChannelPipeline.java` does not). When the impl's
+# *core* name (stem with prefix/suffix stripped) overlaps the query, we credit
+# the impl to compensate. An impl-walkthrough intent in the query
+# ("how does X work", "walk me through", "implementation") multiplies the
+# boost, since the user is explicitly asking for the impl, not the interface.
+IMPL_PREFIXES = ("default", "abstract", "base", "internal")
+IMPL_SUFFIXES = ("impl", "internal")
+IMPL_BOOST = 0.8                 # weight per overlapping core token
+IMPL_INTENT_MULTIPLIER = 1.5     # extra when query has impl-walkthrough intent
+IMPL_INTENT_RE = re.compile(
+    r"\b(implementation|implements?|walk\s*(?:me\s*)?through|how\s+does|how\s+is|"
+    r"internals?|actually|under\s+the\s+hood|dispatch(?:es|er)?)\b",
+    re.I,
+)
+
 # Graph-propagation seed gating. A single match on a low-IDF token like
 # `get` produces a small but non-trivial BM25 score in every file that
 # contains many `get_*` methods. In a 1k+ file corpus, hundreds of files
@@ -74,6 +94,22 @@ CALLERS_BOOST = 3.0
 #      by their own lexical signal — they just don't *radiate* it.
 MIN_LEX_SEED = 1.0
 MAX_LEX_SEEDS = 25
+
+# Filename-gated graph_prop compression. The raw graph_prop bonus accumulates
+# into the thousands for popular receivers, which is *useful* when that file
+# is also the lexical answer (e.g. `RestTemplate.java` on a query asking
+# about RestTemplate — the canonical popular file ought to win) but *harmful*
+# when the popular receiver is a generic utility unrelated to the query
+# (e.g. `Log.kt` on a Signal adapter question, `EmbeddedChannel.java` on
+# a netty pipeline question).
+#
+# The gate: a file gets *raw* graph_prop credit only if its filename also
+# matches the query (>= GRAPH_FILENAME_GATE tokens). Otherwise its
+# graph_prop is log-compressed so it acts as a tie-breaker rather than a
+# dominant signal. This keeps canonical-popular files at the top of symbol
+# lookups while preventing popular utilities from dominating concept queries.
+GRAPH_FILENAME_GATE = 2.0        # filename-match threshold for ungated graph credit
+GRAPH_PROP_SCALE = 2.0           # log-compression scale applied below the gate
 
 TOP_K = 5
 STAGED_TOKEN_CAP = 10000         # advisory only; path-list output is cheap,
@@ -390,6 +426,47 @@ def definition_bonus(query_tokens, entry):
     return float(sum(1 for q in query_tokens if q in def_names))
 
 
+def impl_pattern_boost(query_tokens, rel_path, has_impl_intent):
+    """Boost files whose basename matches a `Default*` / `Abstract*` / `*Impl`
+    impl-pattern AND whose core name (after the prefix/suffix is stripped)
+    overlaps the query. Compensates for the interface sibling winning the
+    plain filename_match because its full stem matches the query term
+    verbatim. See IMPL_BOOST docs at the top of the file."""
+    stem = os.path.splitext(os.path.basename(rel_path))[0]
+    if not stem:
+        return 0.0
+    low = stem.lower()
+    core = None
+    # Prefix patterns: DefaultFoo, AbstractFoo, BaseFoo, InternalFoo.
+    # The character after the prefix must be uppercase, otherwise we'd
+    # spuriously fire on names like `defaults.py` or `abstractor.java`.
+    for pref in IMPL_PREFIXES:
+        if low.startswith(pref) and len(stem) > len(pref) and stem[len(pref)].isupper():
+            core = stem[len(pref):]
+            break
+    if core is None:
+        # Suffix patterns: FooImpl, FooInternal. The character before the
+        # suffix must be lowercase or a digit (so the suffix starts a new
+        # CamelCase chunk) — guards against false hits like `Simpl`.
+        for suf in IMPL_SUFFIXES:
+            if low.endswith(suf) and len(stem) > len(suf):
+                end = len(stem) - len(suf)
+                if stem[end - 1].islower() or stem[end - 1].isdigit():
+                    core = stem[:end]
+                    break
+    if not core:
+        return 0.0
+    core_tokens = set(split_identifier(core))
+    core_tokens.add(core.lower())
+    overlap = sum(1 for q in query_tokens if q in core_tokens)
+    if overlap == 0:
+        return 0.0
+    boost = IMPL_BOOST * overlap
+    if has_impl_intent:
+        boost *= IMPL_INTENT_MULTIPLIER
+    return boost
+
+
 # ----------------------------------------------------------------------
 # Import-graph propagation (2-hop, decay, hub suppression)
 # ----------------------------------------------------------------------
@@ -495,6 +572,8 @@ def build_why(breakdown):
     flags = []
     if breakdown.get("callers_boost", 0) > 0:
         flags.append("callers-of target")
+    if breakdown.get("impl_boost", 0) > 0:
+        flags.append("impl-pattern match")
     if breakdown["filename"] >= 1.0:
         flags.append("strong filename match")
     if breakdown["path_aff"] >= 1.0:
@@ -592,6 +671,7 @@ def rank(query: str, index: dict):
 
     now = time.time()
     hub_set = identify_hubs(rev, len(files))
+    has_impl_intent = bool(IMPL_INTENT_RE.search(query))
 
     # Pass 1 — collect raw per-file signals so we can derive a corpus-wide
     # lexical-strength measurement before applying prior weights.
@@ -635,10 +715,13 @@ def rank(query: str, index: dict):
     # final ranking while preventing them from poisoning propagation.
     lexical_seeds = {}
     for rel, r in raw.items():
-        # Any query-derived signal present? (term hit, filename, path, def)
+        impl_b = impl_pattern_boost(query_tokens, rel, has_impl_intent)
+
+        # Any query-derived signal present? (term hit, filename, path, def, impl)
         has_query_signal = (
             bool(r["matched"]) or r["filename"] > 0
             or r["path_aff"] > 0 or r["def_bonus"] > 0
+            or impl_b > 0
         )
 
         # Fix #3 — noise-hub penalty: popularity is only positive when the
@@ -658,6 +741,7 @@ def rank(query: str, index: dict):
             + gamma_eff * r["recency"]
             + pop_term
             + ZETA * r["def_bonus"]
+            + impl_b
         )
 
         # Fix #4 — callers-of boost. Defining files get a double boost so
@@ -675,12 +759,13 @@ def rank(query: str, index: dict):
             + ALPHA * r["filename"]
             + BETA * r["path_aff"]
             + ZETA * r["def_bonus"]
+            + impl_b
             + callers_boost
         )
         if (lex >= MIN_LEX_SEED and has_query_signal) or callers_boost > 0:
             lexical_seeds[rel] = lex
 
-        if total > 0 or r["matched"] or callers_boost > 0:
+        if total > 0 or r["matched"] or callers_boost > 0 or impl_b > 0:
             breakdowns[rel] = {
                 "bm25": r["bm25"], "prose": r["prose"],
                 "filename": r["filename"], "path_aff": r["path_aff"],
@@ -688,6 +773,7 @@ def rank(query: str, index: dict):
                 "def_bonus": r["def_bonus"], "graph_prop": 0.0,
                 "matched_tokens": r["matched"],
                 "callers_boost": callers_boost,
+                "impl_boost": impl_b,
                 "noise_hub": noise_hub,
             }
             base_scores[rel] = total
@@ -702,19 +788,29 @@ def rank(query: str, index: dict):
 
     # Graph propagation seeded from lexical signals only (see comment above).
     bonus = graph_propagation(lexical_seeds, fwd, rev, hub_set)
-    for rel, b in bonus.items():
+    for rel, raw_b in bonus.items():
         # In callers-of mode with a resolved defining file, restrict graph
         # propagation credit to the actual caller set. Otherwise unrelated
         # files (e.g. agent base classes that happen to match `get`) pile
         # up bonus from the import graph and outrank the real target.
         if callers_target and callers_defining and rel not in callers_importers:
             continue
+        # Filename-gated compression: if the file *also* matches the query
+        # by name (likely the canonical popular file), keep graph_prop raw.
+        # Otherwise log-compress so generic utility hubs can't dominate.
+        fn_score = raw.get(rel, {}).get("filename", 0.0)
+        if raw_b <= 0:
+            b = 0.0
+        elif fn_score >= GRAPH_FILENAME_GATE:
+            b = raw_b
+        else:
+            b = GRAPH_PROP_SCALE * math.log1p(raw_b)
         if rel not in breakdowns:
             breakdowns[rel] = {
                 "bm25": 0.0, "prose": 0.0, "filename": 0.0, "path_aff": 0.0,
                 "recency": 0.0, "popularity": 0.0, "def_bonus": 0.0,
                 "graph_prop": b, "matched_tokens": set(),
-                "callers_boost": 0.0, "noise_hub": False,
+                "callers_boost": 0.0, "impl_boost": 0.0, "noise_hub": False,
             }
         else:
             breakdowns[rel]["graph_prop"] = b
@@ -778,6 +874,7 @@ def format_output(query, index, ranked, breakdowns, meta, index_path):
             or top_b.get("filename", 0) > 0
             or top_b.get("def_bonus", 0) > 0
             or top_b.get("callers_boost", 0) > 0
+            or top_b.get("impl_boost", 0) > 0
         )
         if top_score < LOW_CONFIDENCE_SCORE or not top_has_signal:
             low_conf = True
