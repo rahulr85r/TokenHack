@@ -116,7 +116,9 @@ This is the closest thing TokenHack has to "tests" right now — concrete eviden
 
 ## Contributing opportunities
 
-The internal [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md) has the architecture details. The top-level [README's Contributing section](README.md#contributing) lists the well-scoped opportunities. The highest-impact items right now:
+The canonical, in-depth list is in [`ROADMAP.md`](ROADMAP.md) — near-term well-scoped items, medium-term design-discussion items, long-term speculative ideas, and what's explicitly out of scope.
+
+The internal [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md) has architecture details. The top-level [README's Contributing section](README.md#contributing) lists a shorter quick-pick subset. The highest-impact items right now:
 
 **Sharply scoped, ~few hours of work each:**
 
