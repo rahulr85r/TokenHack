@@ -5,9 +5,9 @@
     "python": true,
     "swift": true
   },
-  "build_seconds": 0.0,
-  "built_at": "2026-05-26T02:49:25+00:00",
-  "built_at_commit": "1d5301a42c4fa81e06e6d3e3f1d5598ee4d465d7",
+  "build_seconds": 0.02,
+  "built_at": "2026-06-12T00:24:47+00:00",
+  "built_at_commit": "dca4c12c45b3862d157de025b4a255cf2722ea55",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -66,10 +66,10 @@
     ".claude/skills/tokenhack/adapters/_base.py": {
       "docstring_summary": "Base types and utilities shared by all TokenHack language adapters.",
       "imported_by": [
-        ".claude/skills/tokenhack/adapters/swift.py",
         ".claude/skills/tokenhack/adapters/__init__.py",
         ".claude/skills/tokenhack/adapters/jvm.py",
         ".claude/skills/tokenhack/adapters/python.py",
+        ".claude/skills/tokenhack/adapters/swift.py",
         ".claude/skills/tokenhack/adapters/javascript.py"
       ],
       "imports": [
@@ -77,7 +77,7 @@
         "typing"
       ],
       "lang": "python",
-      "mtime": 1779687752,
+      "mtime": 1781223881,
       "prose_paragraphs": [
         "Base types and utilities shared by all TokenHack language adapters.",
         "Return the UTF-8 text of a tree-sitter node, replacing invalid bytes.",
@@ -93,41 +93,47 @@
         "startswith",
         "strip"
       ],
-      "size_chars": 1329,
+      "size_chars": 1691,
       "symbols": [
         {
+          "end_line": 20,
           "kind": "def",
           "line": 7,
           "name": "Symbol",
           "signature": "class Symbol:"
         },
         {
+          "end_line": 20,
           "kind": "def",
-          "line": 13,
+          "line": 19,
           "name": "to_dict",
           "signature": "def to_dict(self):"
         },
         {
+          "end_line": 29,
           "kind": "def",
-          "line": 18,
+          "line": 24,
           "name": "ExtractResult",
           "signature": "class ExtractResult:"
         },
         {
+          "end_line": 34,
           "kind": "def",
-          "line": 26,
+          "line": 32,
           "name": "get_text",
           "signature": "def get_text(node, source: bytes) -> str:"
         },
         {
+          "end_line": 38,
           "kind": "def",
-          "line": 31,
+          "line": 37,
           "name": "first_line",
           "signature": "def first_line(text: str) -> str:"
         },
         {
+          "end_line": 52,
           "kind": "def",
-          "line": 35,
+          "line": 41,
           "name": "strip_string_quotes",
           "signature": "def strip_string_quotes(s: str) -> str:"
         }
@@ -142,7 +148,7 @@
         "tree_sitter_javascript"
       ],
       "lang": "python",
-      "mtime": 1779687752,
+      "mtime": 1781223881,
       "prose_paragraphs": [
         "JavaScript adapter for TokenHack (JSX included)."
       ],
@@ -166,9 +172,10 @@
         "sorted",
         "strip"
       ],
-      "size_chars": 3069,
+      "size_chars": 3217,
       "symbols": [
         {
+          "end_line": 91,
           "kind": "def",
           "line": 30,
           "name": "extract",
@@ -186,7 +193,7 @@
         "tree_sitter_kotlin"
       ],
       "lang": "python",
-      "mtime": 1779687752,
+      "mtime": 1781223881,
       "prose_paragraphs": [
         "JVM-family adapter (Java + Kotlin) for TokenHack."
       ],
@@ -214,21 +221,24 @@
         "sorted",
         "split"
       ],
-      "size_chars": 3913,
+      "size_chars": 3985,
       "symbols": [
         {
+          "end_line": 58,
           "kind": "def",
           "line": 52,
           "name": "_parser_for",
           "signature": "def _parser_for(filepath: str):"
         },
         {
+          "end_line": 68,
           "kind": "def",
           "line": 61,
           "name": "_find_name",
           "signature": "def _find_name(node):"
         },
         {
+          "end_line": 127,
           "kind": "def",
           "line": 71,
           "name": "extract",
@@ -245,7 +255,7 @@
         "tree_sitter_python"
       ],
       "lang": "python",
-      "mtime": 1779687752,
+      "mtime": 1781223881,
       "prose_paragraphs": [
         "Python adapter for TokenHack."
       ],
@@ -270,15 +280,17 @@
         "sorted",
         "strip_string_quotes"
       ],
-      "size_chars": 3596,
+      "size_chars": 3664,
       "symbols": [
         {
+          "end_line": 31,
           "kind": "def",
           "line": 21,
           "name": "_docstring_of",
           "signature": "def _docstring_of(body_node, source: bytes) -> str:"
         },
         {
+          "end_line": 109,
           "kind": "def",
           "line": 34,
           "name": "extract",
@@ -295,7 +307,7 @@
         "tree_sitter_swift"
       ],
       "lang": "python",
-      "mtime": 1779687752,
+      "mtime": 1781223881,
       "prose_paragraphs": [
         "Swift adapter for TokenHack."
       ],
@@ -320,15 +332,17 @@
         "sorted",
         "split"
       ],
-      "size_chars": 2400,
+      "size_chars": 2472,
       "symbols": [
         {
+          "end_line": 33,
           "kind": "def",
           "line": 26,
           "name": "_find_name",
           "signature": "def _find_name(node):"
         },
         {
+          "end_line": 81,
           "kind": "def",
           "line": 36,
           "name": "extract",
@@ -527,7 +541,7 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1779756456,
+      "mtime": 1781223881,
       "prose_paragraphs": [
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
@@ -541,6 +555,7 @@
         "Count query tokens that appear in any path-segment of the file.",
         "Exponential decay on file age in days.",
         "+1 per query token that matches a definition name in this file.",
+        "Boost files whose basename matches a `Default*` / `Abstract*` / `*Impl`",
         "Files imported by more than HUB_FRACTION of the corpus.",
         "Propagate seed scores to neighbors in both directions, 2 hops with decay.",
         "Heuristically find a paired test file for a source file (or vice versa).",
@@ -568,6 +583,7 @@
         "dict",
         "dirname",
         "endswith",
+        "enumerate",
         "exists",
         "exit",
         "extend",
@@ -578,13 +594,18 @@
         "findall",
         "float",
         "format_output",
+        "format_span",
         "fuzzy_expand",
         "get",
         "get_close_matches",
         "graph_propagation",
         "group",
         "identify_hubs",
+        "impl_pattern_boost",
         "int",
+        "isdigit",
+        "islower",
+        "isupper",
         "items",
         "join",
         "keys",
@@ -593,6 +614,7 @@
         "load",
         "load_index",
         "log",
+        "log1p",
         "lower",
         "main",
         "max",
@@ -605,10 +627,12 @@
         "rank",
         "recency_score",
         "resolve",
+        "rstrip",
         "run",
         "search",
         "set",
         "setdefault",
+        "sort",
         "sorted",
         "split",
         "split_identifier",
@@ -618,160 +642,207 @@
         "str",
         "strip",
         "sum",
+        "symbol_spans",
         "time",
         "tokenize",
         "update",
         "values"
       ],
-      "size_chars": 32690,
+      "size_chars": 40198,
       "symbols": [
         {
+          "end_line": 147,
           "kind": "def",
-          "line": 102,
+          "line": 138,
           "name": "split_identifier",
           "signature": "def split_identifier(token: str):"
         },
         {
+          "end_line": 176,
           "kind": "def",
-          "line": 114,
+          "line": 150,
           "name": "tokenize",
           "signature": "def tokenize(text: str):"
         },
         {
+          "end_line": 195,
           "kind": "def",
-          "line": 143,
+          "line": 179,
           "name": "fuzzy_expand",
           "signature": "def fuzzy_expand(tokens, vocabulary):"
         },
         {
+          "end_line": 221,
           "kind": "def",
-          "line": 175,
+          "line": 211,
           "name": "detect_callers_target",
           "signature": "def detect_callers_target(query: str):"
         },
         {
+          "end_line": 240,
           "kind": "def",
-          "line": 188,
+          "line": 224,
           "name": "find_callers_files",
           "signature": "def find_callers_files(target: str, files: dict, reverse_graph: dict):"
         },
         {
+          "end_line": 254,
           "kind": "def",
-          "line": 211,
+          "line": 247,
           "name": "find_index_path",
           "signature": "def find_index_path() -> Path:"
         },
         {
+          "end_line": 265,
           "kind": "def",
-          "line": 221,
+          "line": 257,
           "name": "load_index",
           "signature": "def load_index():"
         },
         {
+          "end_line": 349,
           "kind": "def",
-          "line": 236,
+          "line": 272,
           "name": "build_corpus",
           "signature": "def build_corpus(index):"
         },
         {
+          "end_line": 333,
           "kind": "def",
-          "line": 283,
+          "line": 319,
           "name": "channel_idf_avgdl",
           "signature": "def channel_idf_avgdl(channel):"
         },
         {
+          "end_line": 374,
           "kind": "def",
-          "line": 320,
+          "line": 356,
           "name": "bm25_score",
           "signature": "def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):"
         },
         {
+          "end_line": 387,
           "kind": "def",
-          "line": 341,
+          "line": 377,
           "name": "filename_match",
           "signature": "def filename_match(query_tokens, rel_path):"
         },
         {
+          "end_line": 401,
           "kind": "def",
-          "line": 354,
+          "line": 390,
           "name": "path_affinity",
           "signature": "def path_affinity(query_tokens, rel_path):"
         },
         {
+          "end_line": 409,
           "kind": "def",
-          "line": 368,
+          "line": 404,
           "name": "recency_score",
           "signature": "def recency_score(mtime, now):"
         },
         {
+          "end_line": 415,
           "kind": "def",
-          "line": 376,
+          "line": 412,
           "name": "popularity_score",
           "signature": "def popularity_score(entry, max_pop):"
         },
         {
+          "end_line": 426,
           "kind": "def",
-          "line": 382,
+          "line": 418,
           "name": "definition_bonus",
           "signature": "def definition_bonus(query_tokens, entry):"
         },
         {
+          "end_line": 467,
           "kind": "def",
-          "line": 397,
+          "line": 429,
+          "name": "impl_pattern_boost",
+          "signature": "def impl_pattern_boost(query_tokens, rel_path, has_impl_intent):"
+        },
+        {
+          "end_line": 477,
+          "kind": "def",
+          "line": 474,
           "name": "identify_hubs",
           "signature": "def identify_hubs(reverse_graph, n_files):"
         },
         {
+          "end_line": 519,
           "kind": "def",
-          "line": 403,
+          "line": 480,
           "name": "graph_propagation",
           "signature": "def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):"
         },
         {
+          "end_line": 495,
           "kind": "def",
-          "line": 417,
+          "line": 494,
           "name": "neighbors_of",
           "signature": "def neighbors_of(rel):"
         },
         {
+          "end_line": 556,
           "kind": "def",
-          "line": 449,
+          "line": 526,
           "name": "find_test_partner",
           "signature": "def find_test_partner(rel, all_rels):"
         },
         {
+          "end_line": 595,
           "kind": "def",
-          "line": 486,
+          "line": 563,
           "name": "build_why",
           "signature": "def build_why(breakdown):"
         },
         {
+          "end_line": 630,
           "kind": "def",
-          "line": 523,
+          "line": 602,
           "name": "check_staleness",
           "signature": "def check_staleness(index, root: Path):"
         },
         {
+          "end_line": 639,
           "kind": "def",
-          "line": 558,
+          "line": 637,
           "name": "estimate_tokens",
           "signature": "def estimate_tokens(entry):"
         },
         {
+          "end_line": 830,
           "kind": "def",
-          "line": 563,
+          "line": 642,
           "name": "rank",
           "signature": "def rank(query: str, index: dict):"
         },
         {
+          "end_line": 867,
           "kind": "def",
-          "line": 733,
+          "line": 840,
+          "name": "symbol_spans",
+          "signature": "def symbol_spans(entry, query_tokens, max_spans=MAX_SPANS_PER_FILE):"
+        },
+        {
+          "end_line": 874,
+          "kind": "def",
+          "line": 870,
+          "name": "format_span",
+          "signature": "def format_span(start, end):"
+        },
+        {
+          "end_line": 999,
+          "kind": "def",
+          "line": 877,
           "name": "format_output",
           "signature": "def format_output(query, index, ranked, breakdowns, meta, index_path):"
         },
         {
+          "end_line": 1023,
           "kind": "def",
-          "line": 852,
+          "line": 1006,
           "name": "main",
           "signature": "def main():"
         }
@@ -779,8 +850,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 0,
-  "n_files_reused": 8,
+  "n_files_parsed": 6,
+  "n_files_reused": 2,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
@@ -817,7 +888,7 @@
       "---",
       "## How to use the staged context above",
       "You now have a pre-ranked list of files most likely relevant to the user's question. The ranking combines BM25 over symbols + docstrings, filename / path-affinity / recency signals, and 2-hop import-graph proximity.",
-      "- **Start with the top result.** Only widen your reading if you cannot answer from it. - If the `[low-confidence retrieval …]` flag is shown above, the index found no strong match — consider using grep directly or asking the user to rephrase. - If the `[index is N files behind HEAD …]` warning is shown, very recent changes may not be reflected; mention this if you suspect their question hits new c…",
+      "- **Read the staged spans, not whole files.** Each result may list one or more `↳ read L<start>-<end> <signature>` hints — the exact definitions that matched the query. Read those line ranges (via the Read tool's `offset`/`limit`) rather than the entire file; that is the point of TokenHack. Widen to the full file only when the span doesn't answer the question (you need the imports, the class heade…",
       "Now answer the user's question using the staged files.",
       "---",
       "## For the rest of this session — nudge ruleset",
@@ -990,6 +1061,38 @@
       "What's deliberately *missing* from all this — and what keeps the engine small — is anything that would require a machine-learning model: no embeddings, no semantic similarity, no neural reranking. The full set of tunable scoring constants lives in [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md). If your team finds better defaults, open a PR.",
       "---",
       "## How the index stays fresh"
+    ],
+    "ROADMAP.md": [
+      "This is the canonical list of things we'd like to improve in TokenHack, organized by scope and readiness. The shorter \"good first issue\" lists in [`README.md`](README.md#where-to-start) and [`CONTRIBUTING.md`](CONTRIBUTING.md#contributing-opportunities) are quick pointers into this document.",
+      "For how to claim and contribute an item, see [`CONTRIBUTING.md`](CONTRIBUTING.md). For internal architecture, see [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md).",
+      "---",
+      "## Philosophy",
+      "These constraints are load-bearing — proposals that violate them are out of scope no matter how compelling:",
+      "- **Pure-stdlib router.** The query path runs on stock Python with no third-party packages. Indexer uses tree-sitter (one-time per repo, not per query); the router does not. - **No model artifacts shipped with the skill.** No embeddings, no weights, no trained reranker. - **No network at query time.** Retrieval is local-only. - **Token cost is the load-bearing metric.** Every improvement should re…",
+      "Anything that satisfies these is fair game.",
+      "---",
+      "## Status snapshot (May 2026)",
+      "- **4 language adapters**: Java/Kotlin/Scala (JVM), Python, JavaScript, Swift - **Indexer**: 0% error rate across ~22k files tested (DDG, Spring, netty, Signal-Android, OwnCloud, blinkit) - **Router scoring**: 6 named fixes accumulated, most recent being the impl-pattern boost + filename-gated graph_prop ([#2](https://github.com/rahulr85r/TokenHack/pull/2)) - **Validation**: Ad-hoc — no formal reg…",
+      "---",
+      "## Near-term — concrete, scoped, ~few hours each",
+      "These are well-defined contributions that don't need a design discussion. Pick one, open a PR.",
+      "### Language adapters",
+      "- **TypeScript adapter** (`adapters/typescript.py`). Extends the existing JS adapter to `.ts` / `.tsx`. The grammars share ~95% of node types. *Highest-impact contribution — most modern frontends are TS.* - **Vue.js adapter** (`adapters/vue.py`). `tree-sitter-vue` for `.vue` SFCs; reuse JS/TS adapter for `<script>` blocks. - **Ruby adapter** (`adapters/ruby.py`). `tree-sitter-ruby`. Straightforwar…",
+      "### Prose / documentation",
+      "- **AsciiDoc prose support.** `indexer.py:walk_prose` and `extract_prose_paragraphs` only index `.md` today. Spring's design docs are `.adoc`, AsciiDoctor is widely used in Java/Ruby projects, and the prose corpus on Spring is anemic (8 docs / 100 paragraphs vs the real corpus). Add `.adoc` handling — same paragraph extraction with AsciiDoc-aware syntax stripping. - **reStructuredText support.** `…",
+      "### Symbol extraction",
+      "- **Symbol kind granularity.** Adapters currently flatten every symbol to `kind: \"def\"`. Distinguish `class` / `interface` / `struct` / `enum` / `function` / `method` / `field` / `constant` / `typealias`. Enables (a) downstream filtering (`--kind=class`), (b) better ranking signals (a class definition is usually worth more than a constant), and (c) richer output in the staged context.",
+      "### Router / output",
+      "- **Interface ↔ impl paired surfacing.** Today the router pairs source ↔ test (`find_test_partner` in `router.py`). Add an analogous mechanism for interface ↔ `Default*` / `Abstract*` / `*Impl` siblings: when the interface is in top-K, automatically surface the impl as a pair (and vice versa). Sister feature to the impl-pattern boost merged in [#2](https://github.com/rahulr85r/TokenHack/pull/2). -…",
+      "### Symbol-span staging follow-ups",
+      "Symbol-span staging shipped (the router now emits `↳ read L<start>-<end>` hints for query-matched defs so Claude reads ~40-line spans instead of whole files — see *Recently shipped*). Two follow-ups build directly on it:",
+      "- **Symbol cards — answer definitional queries with zero file reads (Tier 2).** The index stores per-symbol `signature`, `line`, and `end_line`, but the per-symbol *docstring first line* is not captured (`docstring_summary` is per-file). Capture a per-symbol `doc` in the adapters (the def node's docstring/leading-comment first line) and have the router emit a compact card per matched symbol — `sig…",
+      "### Configuration",
+      "- **Per-repo config file** (`.tokenhack.toml` at repo root). Override scoring constants, add custom stopwords, define exclude patterns, register codebase-specific synonyms. Today all config is in the source.",
+      "### Testing infrastructure",
+      "- **Ranker regression test suite.** This is the highest-leverage item under \"Larger\" in the README, and it's actually been prototyped — see the comparison harness used to validate [#2](https://github.com/rahulr85r/TokenHack/pull/2). Formalize it: a `tests/regression/` directory with one YAML file per repo, each containing a gold-set of queries and expected files. CI runs the router against fixture…",
+      "---",
+      "## Medium-term — design discussion first"
     ]
   },
   "skip_reasons": {},
