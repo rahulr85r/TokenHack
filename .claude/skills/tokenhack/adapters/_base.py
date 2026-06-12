@@ -8,6 +8,12 @@ class Symbol:
     name: str
     line: int
     kind: str  # "def" (definition) or "ref" (reference) — v1 only emits "def"
+    # Last line of the definition's span (1-based, inclusive). Enables the
+    # router to stage a precise `path:line-end_line` read instead of pointing
+    # at the whole file. Defaults to 0 (unknown) so an older index — or an
+    # adapter that hasn't been updated — still loads and the router falls back
+    # to a from-`line` read.
+    end_line: int = 0
     signature: str = ""
 
     def to_dict(self):

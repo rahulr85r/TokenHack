@@ -22,7 +22,9 @@ Pre-staged context from the local symbol index (zero LLM calls — pure local re
 
 You now have a pre-ranked list of files most likely relevant to the user's question. The ranking combines BM25 over symbols + docstrings, filename / path-affinity / recency signals, and 2-hop import-graph proximity.
 
+- **Read the staged spans, not whole files.** Each result may list one or more `↳ read L<start>-<end>  <signature>` hints — the exact definitions that matched the query. Read those line ranges (via the Read tool's `offset`/`limit`) rather than the entire file; that is the point of TokenHack. Widen to the full file only when the span doesn't answer the question (you need the imports, the class header, or a caller).
 - **Start with the top result.** Only widen your reading if you cannot answer from it.
+- A result with **no** `↳ read` hints was retrieved by prose / filename / import-graph rather than a specific symbol — read that file normally (or its docstring region).
 - If the `[low-confidence retrieval …]` flag is shown above, the index found no strong match — consider using grep directly or asking the user to rephrase.
 - If the `[index is N files behind HEAD …]` warning is shown, very recent changes may not be reflected; mention this if you suspect their question hits new code.
 - Paired test files are listed separately and are an additional context source, not a primary one.
