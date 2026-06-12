@@ -14,6 +14,11 @@ on:
       - '.gitignore'
       - 'docs/**'
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Full rebuild (ignore the incremental hash cache)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -43,11 +48,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r .claude/skills/tokenhack/requirements.txt
 
-      - name: Rebuild index (incremental)
+      - name: Rebuild index
         # --include-self because this IS the TokenHack repo; consumer repos
         # should run the indexer without this flag so the skill's own
         # router/adapters don't pollute their retrieval surface.
-        run: python3 .claude/skills/tokenhack/indexer.py --include-self
+        # Incremental by default; --force on a manual dispatch with force=true.
+        run: python3 .claude/skills/tokenhack/indexer.py --include-self ${{ inputs.force && '--force' || '' }}
 
       - name: Open or update index-update PR
         # Branch protection on main blocks direct pushes from the bot, so the
@@ -66,8 +72,11 @@ jobs:
           git add .claude/skills/tokenhack/index/
           git commit -m "[tokenhack] update index"
           git push --force origin tokenhack/index-update
-          # Create the PR if one doesn't already exist for this branch.
-          if ! gh pr view tokenhack/index-update --json number >/dev/null 2>&1; then
+          # Create the PR only if no OPEN one exists for this branch. `gh pr view
+          # <branch>` returns the most recent PR regardless of state, so once an
+          # index PR has merged it would wrongly suppress every future one — list
+          # open PRs explicitly instead.
+          if [[ -z "$(gh pr list --head tokenhack/index-update --state open --json number --jq '.[0].number')" ]]; then
             gh pr create \
               --base main \
               --head tokenhack/index-update \
