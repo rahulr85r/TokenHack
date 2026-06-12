@@ -91,8 +91,9 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
                 name = get_text(name_node, source)
                 if name:
                     line = name_node.start_point[0] + 1
+                    end_line = node.end_point[0] + 1
                     sig = first_line(get_text(node, source))[:200]
-                    symbols.append(Symbol(name=name, line=line, kind="def", signature=sig))
+                    symbols.append(Symbol(name=name, line=line, end_line=end_line, kind="def", signature=sig))
 
         elif nt in _IMPORT_TYPES:
             for child in node.named_children:

@@ -66,8 +66,9 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
             if name_node is not None:
                 name = get_text(name_node, source)
                 line = name_node.start_point[0] + 1
+                end_line = node.end_point[0] + 1
                 sig = first_line(get_text(node, source))[:200]
-                symbols.append(Symbol(name=name, line=line, kind="def", signature=sig))
+                symbols.append(Symbol(name=name, line=line, end_line=end_line, kind="def", signature=sig))
                 doc = _docstring_of(body_node, source)
                 if doc:
                     prose.append(first_line(doc))

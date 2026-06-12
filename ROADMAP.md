@@ -57,6 +57,13 @@ These are well-defined contributions that don't need a design discussion. Pick o
 - **Better symbol-lookup detection.** Phrases like *"where is X defined"* / *"find X"* should trigger a mode that biases toward definition-site weighting and demotes test files. Today these queries route through the same scoring path as impl walkthroughs; a small intent classifier (regex-based, same shape as `IMPL_INTENT_RE`) would help.
 - **Query-time filters.** `--no-tests`, `--lang=swift`, `--exclude=examples/`, `--only=src/`. Useful when the user knows which slice of the corpus to search.
 
+### Symbol-span staging follow-ups
+
+Symbol-span staging shipped (the router now emits `↳ read L<start>-<end>` hints for query-matched defs so Claude reads ~40-line spans instead of whole files — see *Recently shipped*). Two follow-ups build directly on it:
+
+- **Symbol cards — answer definitional queries with zero file reads (Tier 2).** The index stores per-symbol `signature`, `line`, and `end_line`, but the per-symbol *docstring first line* is not captured (`docstring_summary` is per-file). Capture a per-symbol `doc` in the adapters (the def node's docstring/leading-comment first line) and have the router emit a compact card per matched symbol — `signature — doc  (path:L<start>-<end>)`. For "what's the signature of X" / "what does Y do" the staged block then answers with **no** file read at all. Cost: one short string per symbol in the index; eliminates the read on a whole class of lookups. Touches `adapters/*` (extract per-symbol doc → `Symbol.doc`) and `router.py:format_output` (render the card). *Good follow-on for whoever did, or wants to learn, the span-staging path.*
+- **File-outline staging for architectural queries (Tier 3).** For impl-walkthrough / "how does X work" intent (`IMPL_INTENT_RE` already detects it), emit the matched file's ordered signature skeleton — the signatures the index already stores — beneath the result, so Claude navigates straight to the relevant body and reads only that one span. **Pure `router.py` change, no index growth.** Pairs naturally with the *Better symbol-lookup detection* item above (both are small intent-gated output tweaks).
+
 ### Configuration
 
 - **Per-repo config file** (`.tokenhack.toml` at repo root). Override scoring constants, add custom stopwords, define exclude patterns, register codebase-specific synonyms. Today all config is in the source.
@@ -130,6 +137,7 @@ If you want to propose a brand-new item not on this list, open an issue first. B
 
 ## Recently shipped
 
+- **2026-06** — Symbol-span staging (Tier 1). Indexer captures per-symbol `end_line`; the router stages precise `↳ read L<start>-<end>` hints for the query-matched defs in each result, so Claude reads the relevant ~40-line spans instead of whole files. Tiny index growth (one int per symbol), large query-token reduction on big repos. Degrades gracefully on an older (`end_line`-less) index. Tier 2/3 follow-ups under *Near-term → Symbol-span staging follow-ups*.
 - **2026-05** — [#2](https://github.com/rahulr85r/TokenHack/pull/2) Impl-pattern boost + filename-gated graph_prop compression. Fixes interface-heavy codebases (netty, Spring impl walkthroughs) without regressing canonical-popular lookups (Spring RestTemplate).
 - **2026-05** — [#1](https://github.com/rahulr85r/TokenHack/pull/1) Switch CI index updates to PR-based flow.
 - *(earlier history — see commit log)*

@@ -658,16 +658,19 @@ def rank(query: str, index: dict):
     if callers_target:
         callers_defining, callers_importers = find_callers_files(callers_target, files, rev)
 
-    query_tokens = tokenize(query)
-    if not query_tokens:
+    base_query_tokens = tokenize(query)
+    if not base_query_tokens:
         meta = {
             "callers_target": callers_target,
             "callers_defining": callers_defining,
             "strong_lexical": False,
             "max_bm": 0.0,
+            "query_tokens": [],
         }
         return [], {}, meta
-    query_tokens = fuzzy_expand(query_tokens, vocabulary)
+    # Keep the un-fuzzed tokens for symbol-span attribution (a fuzzy near-match
+    # is fine for ranking files but too loose for picking which defs to stage).
+    query_tokens = fuzzy_expand(base_query_tokens, vocabulary)
 
     now = time.time()
     hub_set = identify_hubs(rev, len(files))
@@ -822,8 +825,53 @@ def rank(query: str, index: dict):
         "callers_defining": callers_defining,
         "strong_lexical": strong_lexical,
         "max_bm": max_bm,
+        "query_tokens": base_query_tokens,
     }
     return ranked, breakdowns, meta
+
+
+# ----------------------------------------------------------------------
+# Symbol-span staging — point Claude at the matched defs, not whole files
+# ----------------------------------------------------------------------
+
+MAX_SPANS_PER_FILE = 4   # cap so a broad query can't list every def in a file
+
+
+def symbol_spans(entry, query_tokens, max_spans=MAX_SPANS_PER_FILE):
+    """Return up to `max_spans` (start, end, signature) tuples for the file's
+    definitions whose name overlaps the query — the precise regions to read.
+
+    Ranked by query-token overlap (desc) then source order. Uses the *un-fuzzed*
+    query tokens so a fuzzy near-match on a symbol name can't pull in an
+    unrelated def. Returns [] when no def name matches (the file was retrieved
+    via prose / import-graph / filename) — the caller then leaves the path bare
+    and Claude reads it normally. `end` is 0 when the index predates end_line.
+    """
+    if not query_tokens:
+        return []
+    qset = set(query_tokens)
+    hits = []
+    for idx, sym in enumerate(entry.get("symbols", [])):
+        if sym.get("kind") != "def":
+            continue
+        name_tokens = set(tokenize(sym.get("name", "")))
+        overlap = len(qset & name_tokens)
+        if overlap == 0:
+            continue
+        start = int(sym.get("line", 0) or 0)
+        if start <= 0:
+            continue
+        end = int(sym.get("end_line", 0) or 0)
+        hits.append((overlap, idx, start, end, sym.get("signature", "")))
+    hits.sort(key=lambda h: (-h[0], h[1]))
+    return [(s, e, sig) for (_, _, s, e, sig) in hits[:max_spans]]
+
+
+def format_span(start, end):
+    """Render a read hint: 'L12-48' when the end is known, else 'L12+' (older index)."""
+    if end and end > start:
+        return f"L{start}-{end}"
+    return f"L{start}+"
 
 
 def format_output(query, index, ranked, breakdowns, meta, index_path):
@@ -929,9 +977,18 @@ def format_output(query, index, ranked, breakdowns, meta, index_path):
             test_pairs.append((rel, partner))
             seen.add(partner)
 
+    query_tokens = (meta or {}).get("query_tokens") or []
     for rel, score in chosen:
         why = build_why(breakdowns.get(rel, {}))
         lines.append(f"  - {rel}  ({why})")
+        # Stage precise spans for the matched defs so Claude reads ~40 lines
+        # instead of the whole file. No matched def → leave the path bare.
+        for start, end, sig in symbol_spans(files.get(rel, {}), query_tokens):
+            sig_short = " ".join((sig or "").split())
+            if len(sig_short) > 90:
+                sig_short = sig_short[:90].rstrip() + "…"
+            suffix = f"  {sig_short}" if sig_short else ""
+            lines.append(f"      ↳ read {format_span(start, end)}{suffix}")
 
     if test_pairs:
         lines.append("")
