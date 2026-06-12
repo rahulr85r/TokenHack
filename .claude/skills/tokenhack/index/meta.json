@@ -1,13 +1,13 @@
 {
   "file_hashes": {
     ".claude/skills/tokenhack/adapters/__init__.py": "a47f7cc91d45202e8fe4846a0714603821ba6a3a0e70f3cc70f5133947d78c96",
-    ".claude/skills/tokenhack/adapters/_base.py": "740c3053515d792a49c0ceb4c8834ac4e6c5d1629bef9e96a1f57e5bc9d481b7",
-    ".claude/skills/tokenhack/adapters/javascript.py": "c1b159fec1b3496b1b249efd88174eb1ab84b5030e1e6320ba1dfbdc11d2a515",
-    ".claude/skills/tokenhack/adapters/jvm.py": "78f835d55dd8138e05927c62d180462005b5368b0c0486dd6e7900e14fd6bce6",
-    ".claude/skills/tokenhack/adapters/python.py": "e2b9105618f489293ccb5a72c50b4ff5fce235278b4f6d05e52225c28942bb7a",
-    ".claude/skills/tokenhack/adapters/swift.py": "adc58bb8704f7dc73edee6cf19b1ac86181df08fa6c7dc701065a943fc9cfaa0",
+    ".claude/skills/tokenhack/adapters/_base.py": "a2dc86404bef3888449e77e192ba06dbde3571a7f08ba97ac6bccb6c3f9d7074",
+    ".claude/skills/tokenhack/adapters/javascript.py": "bc3be9af8824a4d1c9acf39bb5c56fca4aadb82e520447d827cd0e6739390ce8",
+    ".claude/skills/tokenhack/adapters/jvm.py": "5b8d7358fba9bf790e060aa8947bcc852877fd54dfa15c9c97bbbcc6eb402b0c",
+    ".claude/skills/tokenhack/adapters/python.py": "3721e8fdd94a65b4ba24a4c22d17c23372fd282108d5ca0a2b8b710d324d1312",
+    ".claude/skills/tokenhack/adapters/swift.py": "1f514b32704198ca84c381eb56ca409e3835d909421d85b5ce7a8ca1f5d72a71",
     ".claude/skills/tokenhack/indexer.py": "7ab27f3b55b3fd150e833f9dc5d3e7632a047c66c40e812811684089c883b9e3",
-    ".claude/skills/tokenhack/router.py": "072b6e1723824a85bb1c85cfb2c221555ef4a31513ef1730d859473cd83f24a7"
+    ".claude/skills/tokenhack/router.py": "e75e43c31460d83739662ff4cb57efabe63f9040d66548e700ac0a8818407f14"
   },
   "version": 1
 }
