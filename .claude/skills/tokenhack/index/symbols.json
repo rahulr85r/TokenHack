@@ -6,8 +6,8 @@
     "swift": true
   },
   "build_seconds": 0.02,
-  "built_at": "2026-06-12T00:24:47+00:00",
-  "built_at_commit": "dca4c12c45b3862d157de025b4a255cf2722ea55",
+  "built_at": "2026-06-12T01:19:26+00:00",
+  "built_at_commit": "7055645ce63140650348766d01607c0b87a66574",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -18,7 +18,7 @@
         "os"
       ],
       "lang": "python",
-      "mtime": 1779687752,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "Language adapters for TokenHack.",
         "Return the adapter module for a file path, or None if unsupported.",
@@ -38,24 +38,28 @@
       "size_chars": 1572,
       "symbols": [
         {
+          "end_line": 32,
           "kind": "def",
           "line": 27,
           "name": "_build_ext_map",
           "signature": "def _build_ext_map():"
         },
         {
+          "end_line": 42,
           "kind": "def",
           "line": 38,
           "name": "get_adapter",
           "signature": "def get_adapter(filepath: str):"
         },
         {
+          "end_line": 47,
           "kind": "def",
           "line": 45,
           "name": "supported_extensions",
           "signature": "def supported_extensions():"
         },
         {
+          "end_line": 52,
           "kind": "def",
           "line": 50,
           "name": "availability_report",
@@ -77,7 +81,7 @@
         "typing"
       ],
       "lang": "python",
-      "mtime": 1781223881,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "Base types and utilities shared by all TokenHack language adapters.",
         "Return the UTF-8 text of a tree-sitter node, replacing invalid bytes.",
@@ -148,7 +152,7 @@
         "tree_sitter_javascript"
       ],
       "lang": "python",
-      "mtime": 1781223881,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "JavaScript adapter for TokenHack (JSX included)."
       ],
@@ -193,7 +197,7 @@
         "tree_sitter_kotlin"
       ],
       "lang": "python",
-      "mtime": 1781223881,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "JVM-family adapter (Java + Kotlin) for TokenHack."
       ],
@@ -255,7 +259,7 @@
         "tree_sitter_python"
       ],
       "lang": "python",
-      "mtime": 1781223881,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "Python adapter for TokenHack."
       ],
@@ -307,7 +311,7 @@
         "tree_sitter_swift"
       ],
       "lang": "python",
-      "mtime": 1781223881,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "Swift adapter for TokenHack."
       ],
@@ -366,7 +370,7 @@
         "adapters"
       ],
       "lang": "python",
-      "mtime": 1779753440,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "Walk up from `start` looking for the repo root.",
         "Yield (rel_path, full_path) for code files under `root`.",
@@ -452,72 +456,84 @@
       "size_chars": 13165,
       "symbols": [
         {
+          "end_line": 76,
           "kind": "def",
           "line": 63,
           "name": "find_repo_root",
           "signature": "def find_repo_root(start: Path) -> Path:"
         },
         {
+          "end_line": 89,
           "kind": "def",
           "line": 79,
           "name": "current_commit",
           "signature": "def current_commit(repo_root: Path) -> str:"
         },
         {
+          "end_line": 97,
           "kind": "def",
           "line": 92,
           "name": "file_hash",
           "signature": "def file_hash(path: Path) -> str:"
         },
         {
+          "end_line": 115,
           "kind": "def",
           "line": 100,
           "name": "walk_code",
           "signature": "def walk_code(root: Path, exts, stop_dirs=None):"
         },
         {
+          "end_line": 132,
           "kind": "def",
           "line": 118,
           "name": "walk_prose",
           "signature": "def walk_prose(root: Path, stop_dirs=None):"
         },
         {
+          "end_line": 159,
           "kind": "def",
           "line": 135,
           "name": "extract_prose_paragraphs",
           "signature": "def extract_prose_paragraphs(text: str):"
         },
         {
+          "end_line": 174,
           "kind": "def",
           "line": 162,
           "name": "load_meta",
           "signature": "def load_meta(meta_path: Path) -> dict:"
         },
         {
+          "end_line": 184,
           "kind": "def",
           "line": 177,
           "name": "load_symbols",
           "signature": "def load_symbols(sym_path: Path):"
         },
         {
+          "end_line": 218,
           "kind": "def",
           "line": 187,
           "name": "build_reverse_imports",
           "signature": "def build_reverse_imports(files_index: dict):"
         },
         {
+          "end_line": 366,
           "kind": "def",
           "line": 221,
           "name": "index_repo",
           "signature": "def index_repo(root: Path, force: bool = False, verbose: bool = False,"
         },
         {
+          "end_line": 255,
           "kind": "def",
           "line": 252,
           "name": "_skip",
           "signature": "def _skip(reason: str):"
         },
         {
+          "end_line": 386,
           "kind": "def",
           "line": 369,
           "name": "main",
@@ -541,7 +557,7 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1781223881,
+      "mtime": 1781227164,
       "prose_paragraphs": [
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
@@ -850,8 +866,8 @@
     }
   },
   "n_files_indexed": 8,
-  "n_files_parsed": 6,
-  "n_files_reused": 2,
+  "n_files_parsed": 8,
+  "n_files_reused": 0,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
