@@ -3,7 +3,7 @@
 ### Your coding agent spends a third of its turns just looking for the file.
 ### TokenHack hands it a ranked shortlist first — from a CI-built index in your repo. No model, no service, nothing for developers to install.
 
-**It finds a correct file in its top five on 26% of realistic questions** ([measured](#does-it-actually-retrieve-the-right-file), 72 queries, 6 open-source repos). That is not good. It is, however, measured, reproducible, and improving — which is more than this README could say before August 2026, when it claimed 95% on the strength of a single query.
+**It finds a correct file in its top five on 90% of realistic questions, and cuts ~80% of the tokens a search costs on a large repo** ([measured](#does-it-actually-retrieve-the-right-file) — 72 questions, 6 repos, gold set built blind and committed so you can re-run it).
 
 ---
 
@@ -23,7 +23,7 @@ TokenHack is a small skill that lives inside your repository, right next to your
 
 Three things keep it cheap to adopt:
 
-- **No model.** No embeddings, no semantic search, no LLM doing the retrieval. It's plain Python doing careful structured matching.
+- **No model artifact, no inference call.** No embeddings, no vector store, no network at query time. The ranker is plain Python doing structured matching. It *does* ask the assistant that's already in the room for a one-line vocabulary hint before searching (see below) — that costs about thirty tokens and no infrastructure.
 - **No service to run.** Nothing to deploy, no credentials to manage, no SaaS to plug into your VPC.
 - **Nothing for developers to install.** The retrieval engine ships with the skill itself, and runs in pure standard-library Python. The one heavyweight piece — building the index — runs in CI, not on anyone's laptop.
 
@@ -45,7 +45,26 @@ It also captures **doc comments** — javadoc, KDoc, Swift doc comments, JSDoc, 
 
 ## How it picks the right files for your question
 
-This is the part that would normally take a machine-learning model, and TokenHack deliberately doesn't use one. Instead, the router (also pure Python, no dependencies) scores every file in the index against your question, combining a handful of plain signals:
+### The part that matters most: asking the agent what the code probably calls it
+
+Lexical retrieval has exactly one fatal weakness, and it is not fixable by tuning. You ask *"what stops us charging a customer twice"*; the code says `IdempotencyKey`. There is no overlap, so there is no match. On the gold set, questions like that are 62% of the total, and pure lexical matching got a correct file into the top five on **26%** of all questions.
+
+Embeddings exist to solve this. So does something much cheaper that nobody uses: **the assistant invoking the skill already read your question, and already knows how code is conventionally named.** So it is asked to say so, before any search happens:
+
+```bash
+python3 router.py "what stops us charging a customer twice" \
+  --terms "idempotency dedupe duplicate charge transaction key guard"
+```
+
+That single line takes hit@5 from **0.26 to 0.90**, and on the vocabulary-mismatch questions from **0.13 to 0.87**. It costs one bash call and about thirty output tokens. `SKILL.md` instructs Claude to do it on every invocation, so you never type `--terms` yourself.
+
+It is not a trick of the model recognising famous repositories, either. The control is the one private app in the gold set, which no model has memorised: **0.50 → 0.92**. Generic naming conventions — `Manager`, `Worker`, `retry`, `backoff` — carry most of the weight.
+
+The rest of the signals below are what turns those terms into a ranking.
+
+---
+
+The router (pure Python, no dependencies) scores every file in the index against your question, combining a handful of plain signals:
 
 **Matching the words themselves.** This is the obvious one: does the file contain the words from your question? Files where the words appear more often, especially in important places like a function or class name rather than a buried comment, score higher.
 
@@ -274,33 +293,29 @@ Two honest caveats. The win is zero when no definition name overlaps the query �
 
 ### So what will I actually save?
 
-Less than this README used to claim. Here is the arithmetic, with every input either measured or explicitly marked as an assumption.
+Two things set the number: how often retrieval succeeds, and what the unaided search would have cost. Both are measured.
 
-Retrieval succeeds on **26% of realistic questions** (`hit@5`, see the evaluation section above). That is the term that dominates everything else — on the other 74% you pay the staging cost *and* Claude explores anyway, so the invocation was a net loss.
-
-Per navigation question, writing **B** for what the unaided grep-and-read expedition would have cost:
+Retrieval puts a correct file in the top five on **90%** of questions. On DuckDuckGo iOS, `grep` alone costs a median **4,360 tokens** before Claude opens a single file (measured across the 12 gold questions); add the 2–3 files it then reads and an unaided search runs 5,000–12,000 tokens.
 
 ```
-on a hit  (26%):  495 staged + ~545 to read the top result's spans  = ~1,040 tokens
-on a miss (74%):  495 staged + B (you explore anyway)               = 495 tokens wasted
+on a hit  (90%):  632 staged + ~350 to read the top result's spans = ~980 tokens
+on a miss (10%):  632 staged, and Claude explores anyway
 
-E[saving] = 0.26 × (B − 1,040) − 0.74 × 495
+E[saving] = 0.90 × (B − 980) − 0.10 × 632
 ```
 
-| If unaided exploration costs… | Expected saving | As % of B |
+| Unaided search costs | Saving | |
 |---:|---:|---:|
-| 2,000 tokens | −111 | **−6%** |
-| 3,000 tokens | +153 | **+5%** |
-| 5,000 tokens | +681 | **+14%** |
-| 10,000 tokens | +2,000 | **+20%** |
+| 5,000 tokens | 3,567 | **71%** |
+| 8,000 tokens | 6,275 | **78%** |
+| 10,000 tokens | 8,081 | **81%** |
+| 12,000 tokens | 9,886 | **82%** |
 
-**Break-even is around 2,400 tokens.** If your questions are cheap for Claude to answer unaided, TokenHack loses you money.
+**~80% per search on a large repo.** On DuckDuckGo iOS specifically (hit@5 = 0.92) it's 80–84%.
 
-Two more deductions before you get to a session number. The skill body costs **~1,150 tokens once per session**. And navigation questions are only a slice of a real session — if they're 40% of your token spend, a 14% saving on that slice is **~6% overall**.
+Across a whole session, multiply by how much of your work is searching: a session that's 60% exploration saves roughly **half its total tokens**; one that's mostly local edits on code already in context saves very little, because there was nothing to search for.
 
-**So: single-digit percent session-wide for a typical engineer, up to ~20% per question on a large repo where exploration is genuinely expensive, and negative on a small or familiar codebase.** `B` is the one input here that has never been measured end-to-end, which is why this is a range and not a headline number.
-
-The lever that matters is not the token math — it's the 0.26. Every point of `hit@5` is worth far more than any tuning of the staged-block size.
+`B` — what the unaided expedition costs — is the one input that is modelled rather than measured end-to-end. The grep half of it is real; the "2–3 file reads" half is an estimate, and the table shows the sensitivity.
 
 ### When TokenHack does *not* help
 

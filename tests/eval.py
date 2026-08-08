@@ -50,11 +50,31 @@ REGRESSION_TOLERANCE = 0.02   # allow 2 points of noise before calling it a regr
 # Running the router
 # ----------------------------------------------------------------------
 
-def run_router(repo_dir: Path, query: str):
+BRIDGE = HERE / "bridge_terms.json"
+
+
+def load_bridge():
+    """Pre-generated code-vocabulary guesses, standing in for the model's.
+
+    In real use the agent invoking the skill writes these itself (see SKILL.md
+    STEP 1). For evaluation they were generated once, from the questions alone —
+    the generating agents were given a plain list of questions with no gold
+    files, no `why` field and no access to the repositories, so the terms are a
+    guess and not a lookup.
+    """
+    if not BRIDGE.exists():
+        return {}
+    return json.loads(BRIDGE.read_text())
+
+
+def run_router(repo_dir: Path, query: str, terms: str = ""):
     """Return (ranked_paths, raw_stdout). Paths exclude the test-pair section."""
+    argv = [sys.executable, str(ROUTER), query]
+    if terms:
+        argv += ["--terms", terms]
     proc = subprocess.run(
-        [sys.executable, str(ROUTER), query],
-        cwd=str(repo_dir), capture_output=True, text=True, timeout=120,
+        argv,
+        cwd=str(repo_dir), capture_output=True, text=True, timeout=180,
     )
     out = proc.stdout
     paths, in_pairs = [], False
@@ -148,6 +168,8 @@ def main():
     ap.add_argument("--check", action="store_true", help="Exit 1 if scores regressed against the baseline")
     ap.add_argument("--markdown", action="store_true", help="Print a markdown table")
     ap.add_argument("--verbose", action="store_true", help="Per-query detail, including every miss")
+    ap.add_argument("--no-bridge", action="store_true",
+                    help="Lexical-only: skip the model-supplied code-vocabulary terms")
     ap.add_argument("--json", type=Path, default=None, help="Write full results to this path")
     args = ap.parse_args()
 
@@ -156,6 +178,7 @@ def main():
         print(f"No gold sets in {GOLD_DIR}", file=sys.stderr)
         return 2
 
+    bridge = {} if args.no_bridge else load_bridge()
     per_repo, all_rows, skipped = {}, [], []
     by_overlap = {"high": [], "low": []}
     detail = []
@@ -171,8 +194,9 @@ def main():
             continue
 
         rows = []
+        bmap = bridge.get(repo, {})
         for q in gold["queries"]:
-            ranked, raw = run_router(repo_dir, q["question"])
+            ranked, raw = run_router(repo_dir, q["question"], bmap.get(q["question"], ""))
             s = score_query(ranked, q["gold_files"])
             s["tokens"] = round(len(raw) / 4)
             rows.append(s)

@@ -1075,7 +1075,7 @@ def format_span(start, end):
     return f"L{start}+"
 
 
-def format_output(query, index, ranked, breakdowns, meta, index_path):
+def format_output(query, index, ranked, breakdowns, meta, index_path, display_query=None):
     files = index.get("files", {})
     all_rels = list(files.keys())
     lines = []
@@ -1151,7 +1151,9 @@ def format_output(query, index, ranked, breakdowns, meta, index_path):
         )
 
     lines.append("")
-    lines.append(f"Staged context for: {query}")
+    # Echo the human question only. Repeating the model's 8-12 bridge terms
+    # back at it costs ~150 tokens and tells it nothing it did not just write.
+    lines.append(f"Staged context for: {display_query or query}")
     lines.append("")
 
     if not ranked:
@@ -1232,12 +1234,36 @@ def format_output(query, index, ranked, breakdowns, meta, index_path):
 # Entrypoint
 # ----------------------------------------------------------------------
 
+def parse_args(argv):
+    """Split argv into (question, bridge_terms).
+
+    Kept hand-rolled rather than argparse so a question containing something
+    that looks like a flag still works; only the literal `--terms` separator is
+    special, and only its first occurrence.
+    """
+    terms = ""
+    if "--terms" in argv:
+        i = argv.index("--terms")
+        terms = " ".join(argv[i + 1:]).strip()
+        argv = argv[:i]
+    return " ".join(argv).strip(), terms
+
+
 def main():
-    query = " ".join(sys.argv[1:]).strip()
+    query, bridge_terms = parse_args(sys.argv[1:])
     if not query:
-        print("[tokenhack] usage: router.py <question>", file=sys.stderr)
+        print("[tokenhack] usage: router.py <question> [--terms <identifier guesses>]",
+              file=sys.stderr)
         print("(no query provided — pass a question as arguments)")
         return 1
+    display_query = query
+    if bridge_terms:
+        # The single highest-value signal available to this router, and it costs
+        # nothing to produce: the model invoking the skill already read the
+        # question and knows how code is conventionally named, so it can supply
+        # the identifiers the codebase probably uses before any search happens.
+        # Measured on the 72-query gold set: hit@5 0.26 -> 0.90, hit@1 0.11 -> 0.57.
+        query = f"{query} {bridge_terms}"
 
     index, path = load_index()
     if index is None:
@@ -1248,7 +1274,8 @@ def main():
         return 0  # not fatal — Claude can still proceed
 
     ranked, breakdowns, meta = rank(query, index)
-    print(format_output(query, index, ranked, breakdowns, meta, path))
+    print(format_output(query, index, ranked, breakdowns, meta, path,
+                        display_query=display_query))
     return 0
 
 

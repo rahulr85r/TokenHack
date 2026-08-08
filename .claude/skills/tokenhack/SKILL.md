@@ -18,6 +18,42 @@ Pre-staged context from the local symbol index (zero LLM calls — pure local re
 
 ---
 
+## STEP 1 (do this first, before reading anything)
+
+The block above is a **lexical-only first pass**. It matched the user's English against
+the code's identifiers, and English and identifiers disagree constantly — the user says
+"stop charging the customer twice", the code says `IdempotencyKey`. On its own that pass
+puts a correct file in its top 5 about a quarter of the time.
+
+You can fix that, and only you can, because you already know how code is conventionally
+named. **Run the bridge pass now:**
+
+```
+python3 .claude/skills/tokenhack/router.py "$ARGUMENTS" --terms "<your guesses>"
+```
+
+For `<your guesses>`, write **8–12 bare, space-separated terms** naming what *this codebase*
+probably calls the thing being asked about. Translate out of the question's vocabulary and
+into code vocabulary:
+
+- Class and symbol names you'd expect (`ResourceLeakDetector`, `ChannelOutboundBuffer`)
+- The domain noun as an identifier (`idempotency`, `backoff`, `watermark`, `cumulation`)
+- Conventional suffixes that plausibly apply (`Manager`, `Handler`, `Provider`, `Worker`,
+  `Repository`, `Interceptor`, `Factory`)
+- Morphological variants (`retry retries`, `upload uploader`)
+
+If it's a well-known open-source project, use what you know of its actual API. If it's an
+unfamiliar private codebase, use naming conventions for its language — that works too.
+
+**Then use the bridge pass's results, not the first pass's.** Measured across 72 questions
+on 6 repositories, this moves hit@5 from 0.26 to 0.90 and hit@1 from 0.11 to 0.57. It costs
+one bash call and about thirty tokens. Do not skip it.
+
+Skip it only if the first pass already returned an obviously-correct file for a query that
+named a specific symbol.
+
+---
+
 ## How to use the staged context above
 
 You now have a pre-ranked list of files most likely relevant to the user's question. The ranking combines BM25 over symbols + docstrings, filename / path-affinity / recency signals, and 2-hop import-graph proximity.
