@@ -1,9 +1,9 @@
 # TokenHack
 
-### Hitting your daily Claude usage limit before lunch?
-### TokenHack cuts ~95% of the tokens your AI assistant spends just finding the right files in your codebase. Drop-in skill, no install, no SaaS.
+### Your coding agent spends a third of its turns just looking for the file.
+### TokenHack hands it a ranked shortlist first — from a CI-built index in your repo. No model, no service, nothing for developers to install.
 
-![TokenHack: one real query, side by side — 9,779 → 230 tokens, ~95% saved on navigation](docs/usage-comparison.svg)
+**It finds a correct file in its top five on 26% of realistic questions** ([measured](#does-it-actually-retrieve-the-right-file), 72 queries, 6 open-source repos). That is not good. It is, however, measured, reproducible, and improving — which is more than this README could say before August 2026, when it claimed 95% on the strength of a single query.
 
 ---
 
@@ -264,17 +264,6 @@ Against a codebase-wide question where Claude otherwise grep-explores 5-15 files
 
 > **Correction (Aug 2026):** this section previously claimed "worst case ~45 tokens, average ~25." That counted an idealized path list and ignored both real path lengths and the skill body. The numbers above are measured.
 
-### What that looks like in practice
-
-Measured on one real query — *"how does the autofill credential vault work"* against the [DuckDuckGo iOS](https://github.com/duckduckgo/iOS) repo (1,211 Swift files):
-
-| | Tokens | What it is |
-|---|---:|---|
-| **With TokenHack** | **~230** | The staged-context block: 5 ranked paths + rationales + 2 paired test files |
-| **Without TokenHack** | **~9,800** | What Claude burns finding the right files: `glob` candidates (~925) + `grep -rli autofill` (~1,670) + ~7,180 wasted speculative reads of wrong files |
-
-**~95% savings on the navigation step alone**, for that one question.
-
 ### It also narrows *what* gets read, not just *which* files
 
 Each result carries `↳ read L<start>-<end>` hints for the definitions that matched your query, and the skill instructs Claude to read those ranges via the Read tool's `offset`/`limit` rather than the whole file.
@@ -283,15 +272,35 @@ Measured across 12 queries on 6 repos (netty, spring-framework, Signal-Android, 
 
 Two honest caveats. The win is zero when no definition name overlaps the query — the result falls back to a bare path, which happened on 1 of 12 queries. And before the `WIDE_SPAN_FRACTION` fix (Aug 2026), a matched *class* staged a span covering its whole file, which dropped the same measurement to 32%.
 
-Realistic session-level savings depend on your query mix:
+### So what will I actually save?
 
-| Session pattern | TokenHack-applicable share | Realistic session-token savings |
-|---|---:|---:|
-| Mostly "edit this displayed function" / local follow-ups | ~10% | **2–5%** |
-| Mixed exploration + edits (typical engineer on a mature repo) | ~40% | **~25%** |
-| Onboarding to a large unfamiliar codebase ("where does X live", "trace Y") | ~80% | **40%+** |
+Less than this README used to claim. Here is the arithmetic, with every input either measured or explicitly marked as an assumption.
 
-The honest single number for the case TokenHack was built for — a working engineer on an existing large codebase — is **~25% session-level token savings**, with **~95% on each individual navigation step**.
+Retrieval succeeds on **26% of realistic questions** (`hit@5`, see the evaluation section above). That is the term that dominates everything else — on the other 74% you pay the staging cost *and* Claude explores anyway, so the invocation was a net loss.
+
+Per navigation question, writing **B** for what the unaided grep-and-read expedition would have cost:
+
+```
+on a hit  (26%):  495 staged + ~545 to read the top result's spans  = ~1,040 tokens
+on a miss (74%):  495 staged + B (you explore anyway)               = 495 tokens wasted
+
+E[saving] = 0.26 × (B − 1,040) − 0.74 × 495
+```
+
+| If unaided exploration costs… | Expected saving | As % of B |
+|---:|---:|---:|
+| 2,000 tokens | −111 | **−6%** |
+| 3,000 tokens | +153 | **+5%** |
+| 5,000 tokens | +681 | **+14%** |
+| 10,000 tokens | +2,000 | **+20%** |
+
+**Break-even is around 2,400 tokens.** If your questions are cheap for Claude to answer unaided, TokenHack loses you money.
+
+Two more deductions before you get to a session number. The skill body costs **~1,150 tokens once per session**. And navigation questions are only a slice of a real session — if they're 40% of your token spend, a 14% saving on that slice is **~6% overall**.
+
+**So: single-digit percent session-wide for a typical engineer, up to ~20% per question on a large repo where exploration is genuinely expensive, and negative on a small or familiar codebase.** `B` is the one input here that has never been measured end-to-end, which is why this is a range and not a headline number.
+
+The lever that matters is not the token math — it's the 0.26. Every point of `hit@5` is worth far more than any tuning of the staged-block size.
 
 ### When TokenHack does *not* help
 
