@@ -1,13 +1,16 @@
 {
   "file_hashes": {
-    ".claude/skills/tokenhack/adapters/__init__.py": "a47f7cc91d45202e8fe4846a0714603821ba6a3a0e70f3cc70f5133947d78c96",
-    ".claude/skills/tokenhack/adapters/_base.py": "a2dc86404bef3888449e77e192ba06dbde3571a7f08ba97ac6bccb6c3f9d7074",
-    ".claude/skills/tokenhack/adapters/javascript.py": "bc3be9af8824a4d1c9acf39bb5c56fca4aadb82e520447d827cd0e6739390ce8",
-    ".claude/skills/tokenhack/adapters/jvm.py": "5b8d7358fba9bf790e060aa8947bcc852877fd54dfa15c9c97bbbcc6eb402b0c",
-    ".claude/skills/tokenhack/adapters/python.py": "3721e8fdd94a65b4ba24a4c22d17c23372fd282108d5ca0a2b8b710d324d1312",
-    ".claude/skills/tokenhack/adapters/swift.py": "1f514b32704198ca84c381eb56ca409e3835d909421d85b5ce7a8ca1f5d72a71",
+    ".claude/skills/tokenhack/adapters/__init__.py": "82f065b0bdade04e8fa9d1c363989b6240275e93af3db3b05726abd8c79e16ac",
+    ".claude/skills/tokenhack/adapters/_base.py": "0ec542579873d312b09f675755c0eb3f7b772cdb53558a3e3563a1b5245719cc",
+    ".claude/skills/tokenhack/adapters/javascript.py": "526fc9fdb2598872028c07111426a5a3feb38a378dd0f1fe627efd1931ec043e",
+    ".claude/skills/tokenhack/adapters/jvm.py": "5570fd6f0ac20801187e8da0cea05a75848be6c44e13a15483f7585ca7f0954a",
+    ".claude/skills/tokenhack/adapters/python.py": "32918d3fa208b4e6f2cd3f94a6108b2c342be8c321f4e2e40d408126f98c81d1",
+    ".claude/skills/tokenhack/adapters/swift.py": "dbfb7406893411240fe41acdaacb25926ff21b36abb64ba6134361673a2e38c3",
+    ".claude/skills/tokenhack/adapters/typescript.py": "e63af391a604c8ee46feb2e17dc6b485e63728f0587f1e3714e7f57ece738629",
     ".claude/skills/tokenhack/indexer.py": "7ab27f3b55b3fd150e833f9dc5d3e7632a047c66c40e812811684089c883b9e3",
-    ".claude/skills/tokenhack/router.py": "e75e43c31460d83739662ff4cb57efabe63f9040d66548e700ac0a8818407f14"
+    ".claude/skills/tokenhack/router.py": "85adb56d0fee5958c3f728ffc31d15980f9ef604bc823a9d4a65eb4f4a28c354",
+    "tests/eval.py": "d515d6ec7793e26bee658b7b54bab421844f3260b4bcae0b19f55c1b97bcce63",
+    "tests/fetch_repos.py": "08836cd8ac653cd776a527eefb19d84265cc1a062ea9e2bce45277016227410f"
   },
   "version": 1
 }

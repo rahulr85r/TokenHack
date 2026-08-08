@@ -3,11 +3,12 @@
     "javascript": true,
     "jvm": true,
     "python": true,
-    "swift": true
+    "swift": true,
+    "typescript": true
   },
   "build_seconds": 0.02,
-  "built_at": "2026-06-12T01:19:26+00:00",
-  "built_at_commit": "7055645ce63140650348766d01607c0b87a66574",
+  "built_at": "2026-08-08T04:46:55+00:00",
+  "built_at_commit": "e8039a7aafab4f449d8c4cc4b7240f5aa63313a4",
   "files": {
     ".claude/skills/tokenhack/adapters/__init__.py": {
       "docstring_summary": "Language adapters for TokenHack.",
@@ -18,7 +19,7 @@
         "os"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
         "Language adapters for TokenHack.",
         "Return the adapter module for a file path, or None if unsupported.",
@@ -35,33 +36,33 @@
         "sorted",
         "splitext"
       ],
-      "size_chars": 1572,
+      "size_chars": 1625,
       "symbols": [
         {
-          "end_line": 32,
+          "end_line": 33,
           "kind": "def",
-          "line": 27,
+          "line": 28,
           "name": "_build_ext_map",
           "signature": "def _build_ext_map():"
         },
         {
-          "end_line": 42,
+          "end_line": 43,
           "kind": "def",
-          "line": 38,
+          "line": 39,
           "name": "get_adapter",
           "signature": "def get_adapter(filepath: str):"
         },
         {
-          "end_line": 47,
+          "end_line": 48,
           "kind": "def",
-          "line": 45,
+          "line": 46,
           "name": "supported_extensions",
           "signature": "def supported_extensions():"
         },
         {
-          "end_line": 52,
+          "end_line": 53,
           "kind": "def",
-          "line": 50,
+          "line": 51,
           "name": "availability_report",
           "signature": "def availability_report():"
         }
@@ -70,34 +71,55 @@
     ".claude/skills/tokenhack/adapters/_base.py": {
       "docstring_summary": "Base types and utilities shared by all TokenHack language adapters.",
       "imported_by": [
+        ".claude/skills/tokenhack/adapters/swift.py",
         ".claude/skills/tokenhack/adapters/__init__.py",
         ".claude/skills/tokenhack/adapters/jvm.py",
+        ".claude/skills/tokenhack/adapters/typescript.py",
         ".claude/skills/tokenhack/adapters/python.py",
-        ".claude/skills/tokenhack/adapters/swift.py",
         ".claude/skills/tokenhack/adapters/javascript.py"
       ],
       "imports": [
         "dataclasses",
-        "typing"
+        "typing",
+        "re"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
         "Base types and utilities shared by all TokenHack language adapters.",
         "Return the UTF-8 text of a tree-sitter node, replacing invalid bytes.",
+        "Return the source line the symbol's *name* sits on, stripped.",
+        "Turn a raw /** ... */ or /// block into a plain prose paragraph.",
+        "Return (paragraphs, summary) from the doc comments in a parsed tree.",
         "Strip leading/trailing string quote markers (single, double, triple)."
       ],
       "references": [
+        "_doc_regexes",
+        "append",
         "asdict",
+        "clean_doc_comment",
+        "compile",
         "decode",
         "endswith",
         "field",
+        "find",
+        "first_line",
+        "get_text",
+        "join",
         "len",
+        "lower",
+        "lstrip",
+        "match",
+        "pop",
+        "reversed",
+        "rfind",
         "split",
+        "splitlines",
         "startswith",
-        "strip"
+        "strip",
+        "sub"
       ],
-      "size_chars": 1691,
+      "size_chars": 6292,
       "symbols": [
         {
           "end_line": 20,
@@ -135,9 +157,37 @@
           "signature": "def first_line(text: str) -> str:"
         },
         {
-          "end_line": 52,
+          "end_line": 56,
           "kind": "def",
           "line": 41,
+          "name": "declaration_line",
+          "signature": "def declaration_line(source: bytes, name_node) -> str:"
+        },
+        {
+          "end_line": 88,
+          "kind": "def",
+          "line": 78,
+          "name": "_doc_regexes",
+          "signature": "def _doc_regexes():"
+        },
+        {
+          "end_line": 117,
+          "kind": "def",
+          "line": 91,
+          "name": "clean_doc_comment",
+          "signature": "def clean_doc_comment(text: str) -> str:"
+        },
+        {
+          "end_line": 147,
+          "kind": "def",
+          "line": 120,
+          "name": "collect_doc_comments",
+          "signature": "def collect_doc_comments(root, source: bytes, max_paragraphs=8, max_chars=240):"
+        },
+        {
+          "end_line": 161,
+          "kind": "def",
+          "line": 150,
           "name": "strip_string_quotes",
           "signature": "def strip_string_quotes(s: str) -> str:"
         }
@@ -145,16 +195,19 @@
     },
     ".claude/skills/tokenhack/adapters/javascript.py": {
       "docstring_summary": "JavaScript adapter for TokenHack (JSX included).",
-      "imported_by": [],
+      "imported_by": [
+        ".claude/skills/tokenhack/adapters/typescript.py"
+      ],
       "imports": [
         "._base",
         "tree_sitter",
         "tree_sitter_javascript"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
-        "JavaScript adapter for TokenHack (JSX included)."
+        "JavaScript adapter for TokenHack (JSX included).",
+        "Shared JS/TS extraction: definitions, imports, call references, docs."
       ],
       "references": [
         "ExtractResult",
@@ -164,7 +217,8 @@
         "add",
         "append",
         "child_by_field_name",
-        "first_line",
+        "collect_doc_comments",
+        "declaration_line",
         "fromkeys",
         "get_text",
         "language",
@@ -174,14 +228,22 @@
         "reversed",
         "set",
         "sorted",
-        "strip"
+        "strip",
+        "walk_source"
       ],
-      "size_chars": 3217,
+      "size_chars": 3682,
       "symbols": [
         {
-          "end_line": 91,
+          "end_line": 95,
           "kind": "def",
-          "line": 30,
+          "line": 32,
+          "name": "walk_source",
+          "signature": "def walk_source(parser, source: bytes, def_types) -> ExtractResult:"
+        },
+        {
+          "end_line": 101,
+          "kind": "def",
+          "line": 98,
           "name": "extract",
           "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
         }
@@ -197,7 +259,7 @@
         "tree_sitter_kotlin"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
         "JVM-family adapter (Java + Kotlin) for TokenHack."
       ],
@@ -211,8 +273,9 @@
         "add",
         "append",
         "child_by_field_name",
+        "collect_doc_comments",
+        "declaration_line",
         "endswith",
-        "first_line",
         "fromkeys",
         "get_text",
         "language",
@@ -225,26 +288,26 @@
         "sorted",
         "split"
       ],
-      "size_chars": 3985,
+      "size_chars": 4160,
       "symbols": [
         {
-          "end_line": 58,
+          "end_line": 59,
           "kind": "def",
-          "line": 52,
+          "line": 53,
           "name": "_parser_for",
           "signature": "def _parser_for(filepath: str):"
         },
         {
-          "end_line": 68,
+          "end_line": 69,
           "kind": "def",
-          "line": 61,
+          "line": 62,
           "name": "_find_name",
           "signature": "def _find_name(node):"
         },
         {
-          "end_line": 127,
+          "end_line": 132,
           "kind": "def",
-          "line": 71,
+          "line": 72,
           "name": "extract",
           "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
         }
@@ -259,7 +322,7 @@
         "tree_sitter_python"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
         "Python adapter for TokenHack."
       ],
@@ -272,6 +335,7 @@
         "add",
         "append",
         "child_by_field_name",
+        "declaration_line",
         "first_line",
         "fromkeys",
         "get_text",
@@ -284,7 +348,7 @@
         "sorted",
         "strip_string_quotes"
       ],
-      "size_chars": 3664,
+      "size_chars": 3683,
       "symbols": [
         {
           "end_line": 31,
@@ -311,7 +375,7 @@
         "tree_sitter_swift"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
         "Swift adapter for TokenHack."
       ],
@@ -324,7 +388,8 @@
         "add",
         "append",
         "child_by_field_name",
-        "first_line",
+        "collect_doc_comments",
+        "declaration_line",
         "fromkeys",
         "get_text",
         "language",
@@ -336,19 +401,62 @@
         "sorted",
         "split"
       ],
-      "size_chars": 2472,
+      "size_chars": 2647,
       "symbols": [
         {
-          "end_line": 33,
+          "end_line": 34,
           "kind": "def",
-          "line": 26,
+          "line": 27,
           "name": "_find_name",
           "signature": "def _find_name(node):"
         },
         {
-          "end_line": 81,
+          "end_line": 86,
           "kind": "def",
-          "line": 36,
+          "line": 37,
+          "name": "extract",
+          "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
+        }
+      ]
+    },
+    ".claude/skills/tokenhack/adapters/typescript.py": {
+      "docstring_summary": "TypeScript / TSX adapter for TokenHack.",
+      "imported_by": [],
+      "imports": [
+        ".javascript",
+        "._base",
+        "tree_sitter",
+        "tree_sitter_typescript"
+      ],
+      "lang": "python",
+      "mtime": 1786164409,
+      "prose_paragraphs": [
+        "TypeScript / TSX adapter for TokenHack."
+      ],
+      "references": [
+        "ExtractResult",
+        "Language",
+        "Parser",
+        "_parser_for",
+        "endswith",
+        "language_tsx",
+        "language_typescript",
+        "lower",
+        "walk_source"
+      ],
+      "size_chars": 2249,
+      "symbols": [
+        {
+          "end_line": 53,
+          "kind": "def",
+          "line": 52,
+          "name": "_parser_for",
+          "signature": "def _parser_for(filepath: str):"
+        },
+        {
+          "end_line": 62,
+          "kind": "def",
+          "line": 56,
           "name": "extract",
           "signature": "def extract(source: bytes, filepath: str) -> ExtractResult:"
         }
@@ -557,8 +665,9 @@
         "subprocess"
       ],
       "lang": "python",
-      "mtime": 1781227164,
+      "mtime": 1786164409,
       "prose_paragraphs": [
+        "Fold a token to a crude singular/base form for structural matching.",
         "Split CamelCase, snake_case, kebab-case, dot/slash-separated.",
         "Lowercase tokens with stopword filter and identifier splitting.",
         "Expand each query token with up to N close matches from the vocabulary.",
@@ -567,8 +676,9 @@
         "Locate symbols.json by walking up from cwd, then falling back to script-relative.",
         "Tokenize per-file content into code and prose channels.",
         "Standard BM25 over a token list.",
-        "Count query tokens that appear in the file's basename stem.",
-        "Count query tokens that appear in any path-segment of the file.",
+        "Scale a structural (non-BM25) match by how informative the token is.",
+        "IDF-weighted count of query tokens appearing in the file's basename stem.",
+        "IDF-weighted count of query tokens appearing in any path segment.",
         "Exponential decay on file age in days.",
         "+1 per query token that matches a definition name in this file.",
         "Boost files whose basename matches a `Default*` / `Abstract*` / `*Impl`",
@@ -576,13 +686,14 @@
         "Propagate seed scores to neighbors in both directions, 2 hops with decay.",
         "Heuristically find a paired test file for a source file (or vice versa).",
         "One-line human-readable rationale for the score.",
-        "Compare index built-at-commit to HEAD; return warning string or None.",
-        "Rough chars/4 token estimate for token-budget capping.",
-        "Score every file in the index for the given query."
+        "Compare index built-at-commit to HEAD; return warning string or None."
       ],
       "references": [
         "Counter",
         "Path",
+        "_file_line_extent",
+        "_idf_weight",
+        "_tunable",
         "add",
         "append",
         "basename",
@@ -618,7 +729,9 @@
         "group",
         "identify_hubs",
         "impl_pattern_boost",
+        "index",
         "int",
+        "is_test_path",
         "isdigit",
         "islower",
         "isupper",
@@ -634,8 +747,10 @@
         "lower",
         "main",
         "max",
+        "min",
         "neighbors_of",
         "open",
+        "parse_args",
         "path_affinity",
         "popularity_score",
         "pow",
@@ -655,219 +770,439 @@
         "splitext",
         "splitlines",
         "startswith",
+        "stem_variant",
         "str",
         "strip",
         "sum",
         "symbol_spans",
         "time",
         "tokenize",
+        "type",
         "update",
-        "values"
+        "values",
+        "width"
       ],
-      "size_chars": 40198,
+      "size_chars": 54551,
       "symbols": [
         {
-          "end_line": 147,
+          "end_line": 43,
           "kind": "def",
-          "line": 138,
-          "name": "split_identifier",
-          "signature": "def split_identifier(token: str):"
-        },
-        {
-          "end_line": 176,
-          "kind": "def",
-          "line": 150,
-          "name": "tokenize",
-          "signature": "def tokenize(text: str):"
-        },
-        {
-          "end_line": 195,
-          "kind": "def",
-          "line": 179,
-          "name": "fuzzy_expand",
-          "signature": "def fuzzy_expand(tokens, vocabulary):"
+          "line": 36,
+          "name": "_tunable",
+          "signature": "def _tunable(name, default):"
         },
         {
           "end_line": 221,
           "kind": "def",
-          "line": 211,
+          "line": 201,
+          "name": "stem_variant",
+          "signature": "def stem_variant(token: str) -> str:"
+        },
+        {
+          "end_line": 233,
+          "kind": "def",
+          "line": 224,
+          "name": "split_identifier",
+          "signature": "def split_identifier(token: str):"
+        },
+        {
+          "end_line": 262,
+          "kind": "def",
+          "line": 236,
+          "name": "tokenize",
+          "signature": "def tokenize(text: str):"
+        },
+        {
+          "end_line": 281,
+          "kind": "def",
+          "line": 265,
+          "name": "fuzzy_expand",
+          "signature": "def fuzzy_expand(tokens, vocabulary):"
+        },
+        {
+          "end_line": 307,
+          "kind": "def",
+          "line": 297,
           "name": "detect_callers_target",
           "signature": "def detect_callers_target(query: str):"
         },
         {
-          "end_line": 240,
+          "end_line": 326,
           "kind": "def",
-          "line": 224,
+          "line": 310,
           "name": "find_callers_files",
           "signature": "def find_callers_files(target: str, files: dict, reverse_graph: dict):"
         },
         {
-          "end_line": 254,
+          "end_line": 340,
           "kind": "def",
-          "line": 247,
+          "line": 333,
           "name": "find_index_path",
           "signature": "def find_index_path() -> Path:"
         },
         {
-          "end_line": 265,
+          "end_line": 351,
           "kind": "def",
-          "line": 257,
+          "line": 343,
           "name": "load_index",
           "signature": "def load_index():"
         },
         {
-          "end_line": 349,
+          "end_line": 435,
           "kind": "def",
-          "line": 272,
+          "line": 358,
           "name": "build_corpus",
           "signature": "def build_corpus(index):"
         },
         {
-          "end_line": 333,
+          "end_line": 419,
           "kind": "def",
-          "line": 319,
+          "line": 405,
           "name": "channel_idf_avgdl",
           "signature": "def channel_idf_avgdl(channel):"
         },
         {
-          "end_line": 374,
+          "end_line": 460,
           "kind": "def",
-          "line": 356,
+          "line": 442,
           "name": "bm25_score",
           "signature": "def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):"
         },
         {
-          "end_line": 387,
+          "end_line": 474,
           "kind": "def",
-          "line": 377,
+          "line": 463,
+          "name": "_idf_weight",
+          "signature": "def _idf_weight(token, idf):"
+        },
+        {
+          "end_line": 492,
+          "kind": "def",
+          "line": 477,
           "name": "filename_match",
-          "signature": "def filename_match(query_tokens, rel_path):"
+          "signature": "def filename_match(query_tokens, rel_path, idf=None):"
         },
         {
-          "end_line": 401,
+          "end_line": 510,
           "kind": "def",
-          "line": 390,
+          "line": 495,
           "name": "path_affinity",
-          "signature": "def path_affinity(query_tokens, rel_path):"
+          "signature": "def path_affinity(query_tokens, rel_path, idf=None):"
         },
         {
-          "end_line": 409,
+          "end_line": 514,
           "kind": "def",
-          "line": 404,
+          "line": 513,
+          "name": "is_test_path",
+          "signature": "def is_test_path(rel_path):"
+        },
+        {
+          "end_line": 522,
+          "kind": "def",
+          "line": 517,
           "name": "recency_score",
           "signature": "def recency_score(mtime, now):"
         },
         {
-          "end_line": 415,
+          "end_line": 528,
           "kind": "def",
-          "line": 412,
+          "line": 525,
           "name": "popularity_score",
           "signature": "def popularity_score(entry, max_pop):"
         },
         {
-          "end_line": 426,
+          "end_line": 539,
           "kind": "def",
-          "line": 418,
+          "line": 531,
           "name": "definition_bonus",
           "signature": "def definition_bonus(query_tokens, entry):"
         },
         {
-          "end_line": 467,
+          "end_line": 580,
           "kind": "def",
-          "line": 429,
+          "line": 542,
           "name": "impl_pattern_boost",
           "signature": "def impl_pattern_boost(query_tokens, rel_path, has_impl_intent):"
         },
         {
-          "end_line": 477,
+          "end_line": 590,
           "kind": "def",
-          "line": 474,
+          "line": 587,
           "name": "identify_hubs",
           "signature": "def identify_hubs(reverse_graph, n_files):"
         },
         {
-          "end_line": 519,
+          "end_line": 632,
           "kind": "def",
-          "line": 480,
+          "line": 593,
           "name": "graph_propagation",
           "signature": "def graph_propagation(seed_scores, forward_graph, reverse_graph, hub_set):"
         },
         {
-          "end_line": 495,
+          "end_line": 608,
           "kind": "def",
-          "line": 494,
+          "line": 607,
           "name": "neighbors_of",
           "signature": "def neighbors_of(rel):"
         },
         {
-          "end_line": 556,
+          "end_line": 669,
           "kind": "def",
-          "line": 526,
+          "line": 639,
           "name": "find_test_partner",
           "signature": "def find_test_partner(rel, all_rels):"
         },
         {
-          "end_line": 595,
+          "end_line": 708,
           "kind": "def",
-          "line": 563,
+          "line": 676,
           "name": "build_why",
           "signature": "def build_why(breakdown):"
         },
         {
-          "end_line": 630,
+          "end_line": 743,
           "kind": "def",
-          "line": 602,
+          "line": 715,
           "name": "check_staleness",
           "signature": "def check_staleness(index, root: Path):"
         },
         {
-          "end_line": 639,
+          "end_line": 979,
           "kind": "def",
-          "line": 637,
-          "name": "estimate_tokens",
-          "signature": "def estimate_tokens(entry):"
-        },
-        {
-          "end_line": 830,
-          "kind": "def",
-          "line": 642,
+          "line": 750,
           "name": "rank",
           "signature": "def rank(query: str, index: dict):"
         },
         {
-          "end_line": 867,
+          "end_line": 1018,
           "kind": "def",
-          "line": 840,
+          "line": 1006,
+          "name": "_file_line_extent",
+          "signature": "def _file_line_extent(entry):"
+        },
+        {
+          "end_line": 1068,
+          "kind": "def",
+          "line": 1021,
           "name": "symbol_spans",
           "signature": "def symbol_spans(entry, query_tokens, max_spans=MAX_SPANS_PER_FILE):"
         },
         {
-          "end_line": 874,
+          "end_line": 1062,
           "kind": "def",
-          "line": 870,
+          "line": 1060,
+          "name": "width",
+          "signature": "def width(h):"
+        },
+        {
+          "end_line": 1075,
+          "kind": "def",
+          "line": 1071,
           "name": "format_span",
           "signature": "def format_span(start, end):"
         },
         {
-          "end_line": 999,
+          "end_line": 1230,
           "kind": "def",
-          "line": 877,
+          "line": 1078,
           "name": "format_output",
-          "signature": "def format_output(query, index, ranked, breakdowns, meta, index_path):"
+          "signature": "def format_output(query, index, ranked, breakdowns, meta, index_path, display_query=None):"
         },
         {
-          "end_line": 1023,
+          "end_line": 1249,
           "kind": "def",
-          "line": 1006,
+          "line": 1237,
+          "name": "parse_args",
+          "signature": "def parse_args(argv):"
+        },
+        {
+          "end_line": 1279,
+          "kind": "def",
+          "line": 1252,
+          "name": "main",
+          "signature": "def main():"
+        }
+      ]
+    },
+    "tests/eval.py": {
+      "docstring_summary": "",
+      "imported_by": [],
+      "imports": [
+        "argparse",
+        "json",
+        "statistics",
+        "subprocess",
+        "sys",
+        "pathlib"
+      ],
+      "lang": "python",
+      "mtime": 1786164409,
+      "prose_paragraphs": [
+        "Pre-generated code-vocabulary guesses, standing in for the model's.",
+        "Return (ranked_paths, raw_stdout). Paths exclude the test-pair section."
+      ],
+      "references": [
+        "ArgumentParser",
+        "Path",
+        "add_argument",
+        "aggregate",
+        "append",
+        "dumps",
+        "enumerate",
+        "exists",
+        "exit",
+        "extend",
+        "fmt",
+        "get",
+        "glob",
+        "items",
+        "join",
+        "len",
+        "load_bridge",
+        "loads",
+        "main",
+        "markdown_table",
+        "mean",
+        "parse_args",
+        "print",
+        "read_text",
+        "resolve",
+        "round",
+        "run",
+        "run_router",
+        "score_query",
+        "setdefault",
+        "sorted",
+        "split",
+        "splitlines",
+        "startswith",
+        "str",
+        "strip",
+        "write_text"
+      ],
+      "size_chars": 10819,
+      "symbols": [
+        {
+          "end_line": 67,
+          "kind": "def",
+          "line": 56,
+          "name": "load_bridge",
+          "signature": "def load_bridge():"
+        },
+        {
+          "end_line": 89,
+          "kind": "def",
+          "line": 70,
+          "name": "run_router",
+          "signature": "def run_router(repo_dir: Path, query: str, terms: str = \"\"):"
+        },
+        {
+          "end_line": 111,
+          "kind": "def",
+          "line": 96,
+          "name": "score_query",
+          "signature": "def score_query(ranked, gold, k=TOP_K):"
+        },
+        {
+          "end_line": 123,
+          "kind": "def",
+          "line": 114,
+          "name": "aggregate",
+          "signature": "def aggregate(rows):"
+        },
+        {
+          "end_line": 132,
+          "kind": "def",
+          "line": 130,
+          "name": "fmt",
+          "signature": "def fmt(agg):"
+        },
+        {
+          "end_line": 154,
+          "kind": "def",
+          "line": 135,
+          "name": "markdown_table",
+          "signature": "def markdown_table(per_repo, overall, by_overlap):"
+        },
+        {
+          "end_line": 264,
+          "kind": "def",
+          "line": 161,
+          "name": "main",
+          "signature": "def main():"
+        }
+      ]
+    },
+    "tests/fetch_repos.py": {
+      "docstring_summary": "",
+      "imported_by": [],
+      "imports": [
+        "argparse",
+        "json",
+        "subprocess",
+        "sys",
+        "pathlib"
+      ],
+      "lang": "python",
+      "mtime": 1786164409,
+      "prose_paragraphs": [],
+      "references": [
+        "ArgumentParser",
+        "Path",
+        "SystemExit",
+        "add_argument",
+        "clone",
+        "exists",
+        "index",
+        "join",
+        "loads",
+        "main",
+        "mkdir",
+        "parse_args",
+        "print",
+        "read_text",
+        "resolve",
+        "run",
+        "sh",
+        "splitlines",
+        "str"
+      ],
+      "size_chars": 3324,
+      "symbols": [
+        {
+          "end_line": 35,
+          "kind": "def",
+          "line": 30,
+          "name": "sh",
+          "signature": "def sh(cmd, cwd=None, check=True):"
+        },
+        {
+          "end_line": 54,
+          "kind": "def",
+          "line": 38,
+          "name": "clone",
+          "signature": "def clone(repo, dest: Path):"
+        },
+        {
+          "end_line": 59,
+          "kind": "def",
+          "line": 57,
+          "name": "index",
+          "signature": "def index(target: Path):"
+        },
+        {
+          "end_line": 83,
+          "kind": "def",
+          "line": 62,
           "name": "main",
           "signature": "def main():"
         }
       ]
     }
   },
-  "n_files_indexed": 8,
-  "n_files_parsed": 8,
-  "n_files_reused": 0,
+  "n_files_indexed": 11,
+  "n_files_parsed": 10,
+  "n_files_reused": 1,
   "n_files_skipped": 0,
   "prose": {
     ".claude/skills/tokenhack/README.md": [
@@ -875,15 +1210,21 @@
       "## Layout",
       "## Scoring formula",
       "The router combines a BM25 baseline with structural and heuristic priors:",
-      "score(file, query) = BM25(tokens, symbols ∪ refs ∪ path_tokens) # lexical + η · BM25(tokens, docstrings ∪ markdown_paragraphs) # prose channel + α · filename_match(tokens, basename(file)) + β · path_affinity(tokens, dirname(file)) + γ · recency(mtime(file)) # exponential decay + ε · symbol_popularity(file) # incoming imports + ζ · definition_bonus(tokens, defs_in_file) + δ₁ · graph_propagation_1ho…",
+      "score(file, query) = [ BM25(tokens, symbols ∪ refs ∪ path_tokens) # lexical + η · BM25(tokens, doc_comments ∪ markdown_paragraphs) # prose channel + α · Σ idf_weight(t) for t in filename_match(tokens, basename(file)) + β · Σ idf_weight(t) for t in path_affinity(tokens, dirname(file)) + γ · recency(mtime(file)) # exponential decay + ε · symbol_popularity(file) # incoming imports + ζ · definition_bo…",
+      "**Corpus filler removal.** Query tokens whose IDF falls below `MIN_QUERY_TOKEN_IDF` are dropped. A natural-language question carries words that are technically in the vocabulary but carry no discrimination — `netty` in netty has an IDF of 0.01. BM25 already discounted them; the structural signals did not.",
+      "**IDF-weighted structural matches.** `filename_match` and `path_affinity` used to count 1.0 per matching token regardless of the token. A question mentioning `read` and `socket` therefore scored the same filename hit as one mentioning `idempotency` and `backoff`. Both are now weighted by token IDF, normalised against `IDF_REFERENCE` so `ALPHA` / `BETA` keep their existing meaning.",
+      "**Test/benchmark demotion.** Tests restate a concept's vocabulary far more densely than the implementation does, which is exactly what BM25 rewards — on netty, the top three results for a pipeline question were two testsuite files and a microbenchmark, and the implementation was absent. Test-path files are multiplied by `TEST_PATH_PENALTY` unless the question is explicitly about tests, and surface…",
       "Hub suppression: files imported by more than `HUB_FRACTION` of the corpus do not propagate scores to their neighbours (utility hubs like `utils.py` would otherwise drag the whole repo in).",
       "**Lexical-vs-prior balance.** When the corpus contains a strong term match (any file with `bm25 + η·prose ≥ LEX_STRONG_THRESHOLD`), the priors `GAMMA` (recency) and `EPSILON` (popularity) are scaled down to act as tie-breakers rather than primary signals. Filename, path-affinity, and definition bonuses are query-derived and are not scaled.",
       "**Noise-hub penalty.** A file with `popularity > 0` but no query-derived signal (no BM25 / prose hit, no filename match, no path affinity, no def bonus) is treated as a *negative* signal — popularity alone is not relevance. This catches the common failure mode where a popular utility file bubbles up on import-count prior despite being unrelated to the query.",
       "**Callers-of mode.** When the query matches a pattern like `callers of X`, `who calls X`, `where is X used`, `find usages of X`, the router locates files defining `X` and walks the reverse-import graph to boost their importers. Defining files get a double boost so they outrank plain importers. Falls back to lexical retrieval if no definition is found. Graph-propagation credit is *restricted* to th…",
+      "**Capped graph propagation.** The filename gate below was meant to bound `graph_prop`, but a natural-language question contains many words, so any well-connected file with two of them in its basename cleared it and received *raw* credit. Measured on netty, `SocketReadPendingTest.java` accumulated a `graph_prop` of 333 against a lexical score of 22 — propagation was 94% of the winning score and the…",
       "**Lexical-only graph propagation.** Recency and popularity are still summed into the final ranking but are not allowed to *seed* the import graph. In an actively-modified repo nearly every file has high recency, which would otherwise make almost every file a propagation seed and inflate well-connected destinations into thousands of graph_prop points. A further hard cap (`MAX_LEX_SEEDS`) limits pro…",
       "## Tunable constants (router.py)",
       "| Constant | Default | What it does | |---|---|---| | `ALPHA` | 1.5 | Weight of filename-match hits | | `BETA` | 1.0 | Weight of path-affinity hits | | `GAMMA` | 0.5 | Weight of recency decay | | `EPSILON` | 0.3 | Weight of symbol popularity (incoming imports) | | `ZETA` | 0.5 | Bonus per matched definition name | | `DELTA_1HOP` | 1.0 | 1-hop import-graph propagation | | `DELTA_2HOP` | 0.3 | 2-hop…",
-      "Open a PR with rationale + measurements if you change any of these.",
+      "| `TEST_PATH_PENALTY` | 0.35 | Multiplier on a test/benchmark/fixture file when the query isn't about tests | | `GRAPH_PROP_CAP_RATIO` | 1.0 | graph_prop ceiling as a multiple of the file's own lexical score | | `GRAPH_PROP_CAP_FLOOR` | 1.0 | Additive floor so a zero-lexical neighbour can still surface | | `IDF_REFERENCE` | 3.0 | IDF normaliser for structural (filename / path) match weighting | |…",
+      "Every constant here is overridable at runtime as `TOKENHACK_<NAME>`, so you can ablate it against the gold set:",
+      "**Open a PR with rationale + measurements if you change any of these.** Since `tests/` exists there is no excuse for \"felt better\" — run `python3 tests/eval.py` before and after and put both numbers in the PR body.",
       "## Adding a new language adapter",
       "Each adapter is a small module that wraps a tree-sitter grammar. To add TypeScript, Vue, Rust, etc.:",
       "1. **Pick the grammar.** `tree-sitter-<language>` packages on PyPI are easiest. Add the dependency to `requirements.txt`. 2. **Create `adapters/<language>.py`.** Follow the shape of `python.py`:",
@@ -902,6 +1243,15 @@
       "Pre-staged context from the local symbol index (zero LLM calls — pure local retrieval):",
       "!`python3 .claude/skills/tokenhack/router.py \"$ARGUMENTS\"`",
       "---",
+      "## STEP 1 (do this first, before reading anything)",
+      "The block above is a **lexical-only first pass**. It matched the user's English against the code's identifiers, and English and identifiers disagree constantly — the user says \"stop charging the customer twice\", the code says `IdempotencyKey`. On its own that pass puts a correct file in its top 5 about a quarter of the time.",
+      "You can fix that, and only you can, because you already know how code is conventionally named. **Run the bridge pass now:**",
+      "For `<your guesses>`, write **8–12 bare, space-separated terms** naming what *this codebase* probably calls the thing being asked about. Translate out of the question's vocabulary and into code vocabulary:",
+      "- Class and symbol names you'd expect (`ResourceLeakDetector`, `ChannelOutboundBuffer`) - The domain noun as an identifier (`idempotency`, `backoff`, `watermark`, `cumulation`) - Conventional suffixes that plausibly apply (`Manager`, `Handler`, `Provider`, `Worker`, `Repository`, `Interceptor`, `Factory`) - Morphological variants (`retry retries`, `upload uploader`)",
+      "If it's a well-known open-source project, use what you know of its actual API. If it's an unfamiliar private codebase, use naming conventions for its language — that works too.",
+      "**Then use the bridge pass's results, not the first pass's.** Measured across 72 questions on 6 repositories, this moves hit@5 from 0.26 to 0.90 and hit@1 from 0.11 to 0.57. It costs one bash call and about thirty tokens. Do not skip it.",
+      "Skip it only if the first pass already returned an obviously-correct file for a query that named a specific symbol.",
+      "---",
       "## How to use the staged context above",
       "You now have a pre-ranked list of files most likely relevant to the user's question. The ranking combines BM25 over symbols + docstrings, filename / path-affinity / recency signals, and 2-hop import-graph proximity.",
       "- **Read the staged spans, not whole files.** Each result may list one or more `↳ read L<start>-<end> <signature>` hints — the exact definitions that matched the query. Read those line ranges (via the Read tool's `offset`/`limit`) rather than the entire file; that is the point of TokenHack. Widen to the full file only when the span doesn't answer the question (you need the imports, the class heade…",
@@ -917,11 +1267,7 @@
       "**Gate 3 — Worth the round-trip.** The question has substantive content (more than ~5 tokens of intent) AND would plausibly require reading 3+ unseen files to answer correctly.",
       "**When in doubt, do NOT nudge.** False positives are strictly worse than missed nudges. The user can always invoke `/tokenhack` manually.",
       "### Nudge phrasing",
-      "When all three gates pass, respond first with this short line **before** answering anything else:",
-      "> This looks codebase-wide — want me to re-stage via `/tokenhack`? (Say \"just answer\" to skip and turn off nudging for this session.)",
-      "Then wait for the user's response.",
-      "### Escape hatch",
-      "If the user says any of: *\"just answer\"*, *\"stop nudging\"*, *\"no thanks\"*, *\"skip\"*, *\"don't nudge\"*, *\"silence\"*, or anything semantically equivalent — **stop nudging for the rest of this session.** Answer their questions directly without the suggestion line. Do not re-introduce nudging in this session."
+      "When all three gates pass, respond first with this short line **before** answering anything else:"
     ],
     ".github/ISSUE_TEMPLATE/adapter_request.md": [
       "## Language",
@@ -1047,8 +1393,8 @@
       "This is the closest thing TokenHack has to \"tests\" right now — concrete evidence that the change improves something specific without regressing something else."
     ],
     "README.md": [
-      "### Hitting your daily Claude usage limit before lunch? ### TokenHack cuts ~95% of the tokens your AI assistant spends just finding the right files in your codebase. Drop-in skill, no install, no SaaS.",
-      "![TokenHack: one real query, side by side — 9,779 → 230 tokens, ~95% saved on navigation](docs/usage-comparison.svg)",
+      "### Your coding agent spends a third of its turns just looking for the file. ### TokenHack hands it a ranked shortlist first — from a CI-built index in your repo. No model, no service, nothing for developers to install.",
+      "**It finds a correct file in its top five on 90% of realistic questions, and cuts ~80% of the tokens a search costs on a large repo** ([measured](#does-it-actually-retrieve-the-right-file) — 72 questions, 6 repos, gold set built blind and committed so you can re-run it).",
       "---",
       "## The problem",
       "If you've spent any real time using Claude Code, Cursor, or any other AI coding assistant on a serious codebase, you've probably noticed the pattern. You ask something like *\"how does our cart sync to the backend?\"* or *\"where do we handle rate limiting?\"*, and before the assistant can answer, it goes on a small expedition through your tree. It runs `grep` a few times, opens five or six files, dec…",
@@ -1058,25 +1404,25 @@
       "## What TokenHack is",
       "TokenHack is a small skill that lives inside your repository, right next to your code. When you ask the assistant a codebase-wide question, it quietly hands over a pre-ranked list of the files most likely to contain the answer — *before* the assistant does any exploration. The assistant reads those five-or-so files and answers, instead of fumbling around your tree.",
       "Three things keep it cheap to adopt:",
-      "- **No model.** No embeddings, no semantic search, no LLM doing the retrieval. It's plain Python doing careful structured matching. - **No service to run.** Nothing to deploy, no credentials to manage, no SaaS to plug into your VPC. - **Nothing for developers to install.** The retrieval engine ships with the skill itself, and runs in pure standard-library Python. The one heavyweight piece — buildi…",
+      "- **No model artifact, no inference call.** No embeddings, no vector store, no network at query time. The ranker is plain Python doing structured matching. It *does* ask the assistant that's already in the room for a one-line vocabulary hint before searching (see below) — that costs about thirty tokens and no infrastructure. - **No service to run.** Nothing to deploy, no credentials to manage, no…",
       "If your team is small, your repo fits comfortably inside the assistant's context window, or you're working greenfield, you probably don't need this yet. TokenHack is built for the people who are quietly drowning in token usage on large, mature codebases.",
       "---",
       "## How it builds the index",
       "The first time you set it up — and on every push afterwards — an *indexer* walks through your code and writes down what it finds. Every function, every class, every imported module, every docstring, and which files import which other files. All of that goes into a structured JSON file under `.claude/skills/tokenhack/index/`, which gets committed to your repo right alongside your code.",
       "The mental model is the index at the back of a textbook. It's not a search engine. It doesn't understand what your code *does*. It's just a list of what's where, written down once so the assistant doesn't have to flip through the whole book every time it wants to find something.",
-      "To extract that list, the indexer uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) — a parser that actually understands code structure rather than just pattern-matching text. Out of the box, it handles Python, Java, Kotlin, JavaScript/JSX, and Swift. Files in unsupported languages are skipped without breaking the build; the rest of the index still gets written.",
+      "To extract that list, the indexer uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) — a parser that actually understands code structure rather than just pattern-matching text. Out of the box, it handles **Python, TypeScript/TSX, JavaScript/JSX, Java, Kotlin, and Swift**. Files in unsupported languages are skipped without breaking the build; the rest of the index still gets written, an…",
+      "It also captures **doc comments** — javadoc, KDoc, Swift doc comments, JSDoc, Python docstrings — into a separate prose channel. That turns out to matter more than anything else in the ranker, because docs are written in the words a human question uses while identifiers are written in the words a compiler needs.",
       "---",
       "## How it picks the right files for your question",
-      "This is the part that would normally take a machine-learning model, and TokenHack deliberately doesn't use one. Instead, the router (also pure Python, no dependencies) scores every file in the index against your question, combining a handful of plain signals:",
-      "**Matching the words themselves.** This is the obvious one: does the file contain the words from your question? Files where the words appear more often, especially in important places like a function or class name rather than a buried comment, score higher.",
-      "There's one trick worth calling out. Programmers don't usually write `user_profile` in English — they write `getUserProfile` or `UserProfileView`. So before matching, the router splits those CamelCase and snake_case names back into their pieces. A natural-language question about *\"user profile\"* finds `getUserProfile` even though those exact words appear nowhere in the file.",
-      "**Where the words appear.** A match in a filename beats a match buried in the middle of a comment. A match in the file's directory path (`payments/retry/idempotency.py` for a question about idempotency) is a strong hint that you're in the right neighbourhood.",
-      "**Recency.** A file that changed last week is more likely to be relevant to whatever you're working on today than one that nobody's touched in two years. This is a tie-breaker, not a primary signal — once everything else is equal, prefer recent.",
-      "**How things connect.** If file A defines something your question is about, and file B imports A, then B is probably worth a look too. The router walks the import graph one or two hops out from each strong match, so neighbouring code surfaces naturally.",
-      "**\"Callers of X\" gets a dedicated mode.** If your question looks like *\"who calls AddToCartButton?\"* or *\"where is fetchUser used?\"*, the router recognises the intent, locates the file that defines `AddToCartButton`, walks the reverse import graph, and returns the files that actually use it. This is the kind of question that's painful to grep for by hand.",
-      "What's deliberately *missing* from all this — and what keeps the engine small — is anything that would require a machine-learning model: no embeddings, no semantic similarity, no neural reranking. The full set of tunable scoring constants lives in [`.claude/skills/tokenhack/README.md`](.claude/skills/tokenhack/README.md). If your team finds better defaults, open a PR.",
+      "### The part that matters most: asking the agent what the code probably calls it",
+      "Lexical retrieval has exactly one fatal weakness, and it is not fixable by tuning. You ask *\"what stops us charging a customer twice\"*; the code says `IdempotencyKey`. There is no overlap, so there is no match. On the gold set, questions like that are 62% of the total, and pure lexical matching got a correct file into the top five on **26%** of all questions.",
+      "Embeddings exist to solve this. So does something much cheaper that nobody uses: **the assistant invoking the skill already read your question, and already knows how code is conventionally named.** So it is asked to say so, before any search happens:",
+      "That single line takes hit@5 from **0.26 to 0.90**, and on the vocabulary-mismatch questions from **0.13 to 0.87**. It costs one bash call and about thirty output tokens. `SKILL.md` instructs Claude to do it on every invocation, so you never type `--terms` yourself.",
+      "It is not a trick of the model recognising famous repositories, either. The control is the one private app in the gold set, which no model has memorised: **0.50 → 0.92**. Generic naming conventions — `Manager`, `Worker`, `retry`, `backoff` — carry most of the weight.",
+      "The rest of the signals below are what turns those terms into a ranking.",
       "---",
-      "## How the index stays fresh"
+      "The router (pure Python, no dependencies) scores every file in the index against your question, combining a handful of plain signals:",
+      "**Matching the words themselves.** This is the obvious one: does the file contain the words from your question? Files where the words appear more often, especially in important places like a function or class name rather than a buried comment, score higher."
     ],
     "ROADMAP.md": [
       "This is the canonical list of things we'd like to improve in TokenHack, organized by scope and readiness. The shorter \"good first issue\" lists in [`README.md`](README.md#where-to-start) and [`CONTRIBUTING.md`](CONTRIBUTING.md#contributing-opportunities) are quick pointers into this document.",
@@ -1087,8 +1433,8 @@
       "- **Pure-stdlib router.** The query path runs on stock Python with no third-party packages. Indexer uses tree-sitter (one-time per repo, not per query); the router does not. - **No model artifacts shipped with the skill.** No embeddings, no weights, no trained reranker. - **No network at query time.** Retrieval is local-only. - **Token cost is the load-bearing metric.** Every improvement should re…",
       "Anything that satisfies these is fair game.",
       "---",
-      "## Status snapshot (May 2026)",
-      "- **4 language adapters**: Java/Kotlin/Scala (JVM), Python, JavaScript, Swift - **Indexer**: 0% error rate across ~22k files tested (DDG, Spring, netty, Signal-Android, OwnCloud, blinkit) - **Router scoring**: 6 named fixes accumulated, most recent being the impl-pattern boost + filename-gated graph_prop ([#2](https://github.com/rahulr85r/TokenHack/pull/2)) - **Validation**: Ad-hoc — no formal reg…",
+      "## Status snapshot (August 2026)",
+      "- **5 language adapters**: Python, TypeScript/TSX, JavaScript/JSX, JVM (Java + Kotlin), Swift - **Prose channel**: doc comments (javadoc / KDoc / Swift doc / JSDoc / docstrings) extracted across all adapters - **Indexer**: 0 errors and 0 skips across ~21k files (Spring 9,487, Signal 5,534, netty 3,512, DDG 1,211, ownCloud 996, blinkit 112) - **Validation**: `tests/eval.py` + a 72-query gold set ac…",
       "---",
       "## Near-term — concrete, scoped, ~few hours each",
       "These are well-defined contributions that don't need a design discussion. Pick one, open a PR.",
@@ -1106,9 +1452,28 @@
       "### Configuration",
       "- **Per-repo config file** (`.tokenhack.toml` at repo root). Override scoring constants, add custom stopwords, define exclude patterns, register codebase-specific synonyms. Today all config is in the source.",
       "### Testing infrastructure",
-      "- **Ranker regression test suite.** This is the highest-leverage item under \"Larger\" in the README, and it's actually been prototyped — see the comparison harness used to validate [#2](https://github.com/rahulr85r/TokenHack/pull/2). Formalize it: a `tests/regression/` directory with one YAML file per repo, each containing a gold-set of queries and expected files. CI runs the router against fixture…",
-      "---",
-      "## Medium-term — design discussion first"
+      "Shipped — see `tests/`. What's left:",
+      "- **Grow the gold set.** 72 queries across 6 repos is enough to find bugs and nowhere near enough to trust a delta of a few points. Every new question is directly useful, and questions on repos we don't already cover are worth the most. - **Held-out split.** Every constant is currently fitted on all 72 queries, so every number is in-sample. Splitting into tune/holdout would let us report a general…",
+      "---"
+    ],
+    "tests/README.md": [
+      "Until this existed, TokenHack had ~20 hand-set scoring constants and no way to tell whether changing one helped. This is that way.",
+      "## What it measures",
+      "| Metric | Meaning | |---|---| | `hit@5` | Did **any** gold file make the top 5? This is the one that matters — Claude only needs one correct entry point. | | `recall@5` | What fraction of the gold files made the top 5? | | `MRR` | 1/rank of the first gold hit. Rewards ranking it *first*, not fifth. |",
+      "Results are also split by `vocabulary_overlap`:",
+      "- **`high`** — the question's words literally appear in the answer's filename or symbols. Lexical retrieval's home ground. - **`low`** — the question uses different words than the code does (\"what stops double-charging\" vs `IdempotencyKey`). This is the case lexical retrieval is *expected* to lose, and it is reported separately rather than averaged in, because averaging hides exactly the weakness…",
+      "## The gold sets",
+      "`tests/gold/<repo>.json` — 72 questions across 6 open-source repos (spring-framework, netty, Signal-Android, DuckDuckGo iOS, ownCloud Android, and a small full-stack JS app), each paired with the file(s) that actually answer it.",
+      "Two properties make the numbers worth trusting:",
+      "1. **Built blind.** The gold sets were produced by agents that explored each repository with nothing but glob/grep/read and were explicitly forbidden from running the router or reading its index. The questions were written first and the answers found second, so the set is not shaped around what TokenHack happens to be good at. 2. **Verified.** Every gold path is checked to exist, and each carries…",
+      "62% of the questions are deliberately `vocabulary_overlap: low`. That makes the headline number look worse than a friendlier set would, which is the point — a gold set you tuned against is a gold set that tells you nothing.",
+      "## Adding to a gold set",
+      "Write the question the way you'd actually type it. If you find yourself choosing words because they appear in the filename, you're writing a benchmark that flatters the tool instead of measuring it.",
+      "## Ablating a constant",
+      "Every tunable in `router.py` reads an optional `TOKENHACK_<NAME>` environment override, so you can measure a weight instead of arguing about it:",
+      "**If you change a scoring constant, put the before/after numbers in the PR.** That's the whole reason this directory exists.",
+      "## Reproducing the numbers",
+      "`tests/repos.json` pins each public repo to the commit its gold set was written against, so the scores are reproducible rather than something you have to take on trust. Two of the six evaluated repos aren't in the manifest — the DuckDuckGo iOS checkout was a source snapshot rather than a clone, and the JS app is private — but their gold sets ship anyway; point `--repos-dir` at your own copies, and…"
     ]
   },
   "skip_reasons": {},
