@@ -101,8 +101,15 @@ in 300 files at once) from collectively dominating the graph.
 | `CALLERS_BOOST` | 3.0 | Boost for "callers of X" reverse-import-graph hits |
 | `MIN_LEX_SEED` | 1.0 | Floor below which a file cannot seed graph propagation |
 | `MAX_LEX_SEEDS` | 25 | Hard cap on the number of files allowed to seed graph propagation (top-N by lex score) |
+| `GRAPH_FILENAME_GATE` | 2.0 | Filename-match tokens needed for *uncompressed* graph_prop credit |
+| `GRAPH_PROP_SCALE` | 2.0 | Log-compression scale applied to graph_prop below the gate |
+| `IMPL_BOOST` | 0.8 | Weight per overlapping core token on a `Default*`/`Abstract*`/`*Impl` file |
+| `IMPL_INTENT_MULTIPLIER` | 1.5 | Extra multiplier when the query has impl-walkthrough intent |
+| `FUZZY_CUTOFF` | 0.85 | `difflib` similarity floor for query-token expansion |
+| `FUZZY_MAX_PER_TOKEN` | 2 | Max fuzzy expansions per query token |
+| `MAX_SPANS_PER_FILE` | 4 | Cap on staged `↳ read` ranges per result |
+| `WIDE_SPAN_FRACTION` | 0.5 | A matched span covering more than this fraction of the file is a container (class / extension), not a target — dropped when a tighter span also matched |
 | `TOP_K` | 5 | How many ranked results to emit |
-| `STAGED_TOKEN_CAP` | 10000 | Advisory only — router emits TOP_K paths regardless |
 
 Open a PR with rationale + measurements if you change any of these.
 

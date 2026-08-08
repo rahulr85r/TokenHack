@@ -3,7 +3,7 @@
 Note: TypeScript is intentionally NOT covered in v1 — see CONTRIBUTING
 section of the top-level README for the planned first-PR scope.
 """
-from ._base import Symbol, ExtractResult, get_text, first_line
+from ._base import Symbol, ExtractResult, get_text, declaration_line
 
 LANGUAGE_NAME = "javascript"
 FILE_EXTENSIONS = [".js", ".mjs", ".cjs", ".jsx"]
@@ -50,7 +50,7 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
                 if name:
                     line = name_node.start_point[0] + 1
                     end_line = node.end_point[0] + 1
-                    sig = first_line(get_text(node, source))[:200]
+                    sig = declaration_line(source, name_node)[:200]
                     symbols.append(Symbol(name=name, line=line, end_line=end_line, kind="def", signature=sig))
 
         elif nt == "variable_declarator":
@@ -63,7 +63,7 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
                     if name:
                         line = name_node.start_point[0] + 1
                         end_line = node.end_point[0] + 1
-                        sig = first_line(get_text(node, source))[:200]
+                        sig = declaration_line(source, name_node)[:200]
                         symbols.append(Symbol(name=name, line=line, end_line=end_line, kind="def", signature=sig))
 
         elif nt == "import_statement":

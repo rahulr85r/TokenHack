@@ -3,7 +3,7 @@
 Extracts function/class definitions, imports, references (call targets),
 and docstring summaries via tree-sitter-python.
 """
-from ._base import Symbol, ExtractResult, get_text, first_line, strip_string_quotes
+from ._base import Symbol, ExtractResult, get_text, first_line, declaration_line, strip_string_quotes
 
 LANGUAGE_NAME = "python"
 FILE_EXTENSIONS = [".py"]
@@ -67,7 +67,7 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
                 name = get_text(name_node, source)
                 line = name_node.start_point[0] + 1
                 end_line = node.end_point[0] + 1
-                sig = first_line(get_text(node, source))[:200]
+                sig = declaration_line(source, name_node)[:200]
                 symbols.append(Symbol(name=name, line=line, end_line=end_line, kind="def", signature=sig))
                 doc = _docstring_of(body_node, source)
                 if doc:
