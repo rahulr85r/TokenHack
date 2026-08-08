@@ -3,7 +3,8 @@
 Java and Kotlin share enough AST structure that one adapter handles both,
 dispatching to the right grammar by file extension.
 """
-from ._base import Symbol, ExtractResult, get_text, declaration_line
+from ._base import (Symbol, ExtractResult, get_text, declaration_line,
+                    collect_doc_comments)
 
 LANGUAGE_NAME = "jvm"
 FILE_EXTENSIONS = [".java", ".kt", ".kts"]
@@ -120,8 +121,12 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
         for child in reversed(node.children):
             stack.append(child)
 
+    prose, summary = collect_doc_comments(root, source)
+
     return ExtractResult(
         symbols=symbols,
         imports=list(dict.fromkeys(imports)),
         references=sorted(r for r in references if r),
+        docstring_summary=summary,
+        prose_paragraphs=prose,
     )

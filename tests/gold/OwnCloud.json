@@ -1,0 +1,121 @@
+{
+  "repo": "OwnCloud",
+  "note": "Ground truth built by agents reading the repo only; TokenHack's router and index were off-limits during construction.",
+  "queries": [
+    {
+      "question": "Why do folders always appear before files in a directory listing, and how does name ordering handle accented characters and capitals?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/utils/SortFilesUtils.kt"
+      ],
+      "why": "Read SortFilesUtils.sortByName, lines 37-48: it builds a java.text.Collator with strength = Collator.PRIMARY (comment says 'Ignore accents and case'), then returns listOfFiles.sortedWith(compareByDescending<OCFile> { it.isFolder }.then(nameComparator)) \u2014 that leading isFolder comparator is what pins folders to the top. sortBySize (50-52) and sortByDate (54-56) deliberately do not do that.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How long do we keep the app's log files on the device before they get deleted, and what runs that cleanup?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/workers/OldLogsCollectorWorker.kt"
+      ],
+      "why": "Read OldLogsCollectorWorker in full. doWork (41-55) lists the logs directory via LocalStorageProvider.getLogsPath(); removeOldLogs (66-73) deletes any file whose lastModified() is older than getLastTimestampAllowed() (75-80), which is now minus numberOfDaysToKeepLogs = 7 (line 86). The companion object (82-87) also sets repeatInterval = 7 / TimeUnit.DAYS.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "When a big file is uploaded, how large are the pieces it's split into, when does the app decide to split at all, and why does the last piece get a much longer timeout?",
+      "gold_files": [
+        "owncloudComLibrary/src/main/java/com/owncloud/android/lib/resources/files/chunks/ChunkedUploadFromFileSystemOperation.kt",
+        "owncloudApp/src/main/java/com/owncloud/android/workers/UploadFileFromFileSystemWorker.kt"
+      ],
+      "why": "ChunkedUploadFromFileSystemOperation.uploadFile (67-116) computes chunkCount = ceil(totalLength / CHUNK_SIZE), PUTs each index under uploadsWebDavUri/transferId/<index>, and on the last index calls setReadTimeout(LAST_CHUNK_TIMEOUT) with the comment about the server assembling all chunks in that final PHP request; companion (118-121) has CHUNK_SIZE = 10_240_000 and LAST_CHUNK_TIMEOUT = 900_000. UploadFileFromFileSystemWorker.uploadDocument (lines 225-239) is the caller that picks uploadChunkedFile vs uploadPlainFile based on isChunkingAllowed && fileSize > CHUNK_SIZE.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "If I send up a file and something with that exact name is already sitting on the server, what does the app end up calling it?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/utils/RemoteFileUtils.kt",
+        "owncloudData/src/main/java/com/owncloud/android/data/files/datasources/implementation/OCRemoteFileDataSource.kt",
+        "owncloudApp/src/main/java/com/owncloud/android/workers/UploadFileFromFileSystemWorker.kt"
+      ],
+      "why": "RemoteFileUtils.getAvailableRemotePath (lines 36-85) does a CheckPathExistenceRemoteOperation; if the path is taken it loops appending suffix = \" ($count)\" before the extension until a free name is found. OCRemoteFileDataSource.getAvailableRemotePath (lines 87-136) is the identical data-layer copy used by copy/move via OCFileRepository. UploadFileFromFileSystemWorker lines 210-222 is the call site logging 'Name collision detected, let's rename it to ...'.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "What stops the camera-roll backup from sending the same photos over and over on every run?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/workers/AutomaticUploadsWorker.kt"
+      ],
+      "why": "AutomaticUploadsWorker.getFilesReadyToUpload (lines 239-265) filters DocumentFiles to those whose lastModified() falls in the half-open window lastSyncTimestamp..<currentTimestamp, also skipping dotfiles and wrong mime prefixes. syncFolder (126-169) captures currentTimestamp once and calls updateTimestamp (217-237) first, which persists lastSyncTimestamp through Save{Picture,Video}UploadsConfigurationUseCase \u2014 so the next run's window starts where this one ended.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "If someone edits a document on their phone while it also changed on the server, how does the app notice and what does it do about it?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/usecases/synchronization/SynchronizeFileUseCase.kt"
+      ],
+      "why": "SynchronizeFileUseCase.run (lines 43-114): step 3 sets changedLocally = localModificationTimestamp > lastSyncDateForData, step 4 sets changedRemotely = serverFile.etag != fileToSynchronize.etag, then the branch at 85-111 returns ConflictDetected (persisting the server etag via SaveConflictUseCase) when both are true, DownloadEnqueued when only remote changed, UploadEnqueued when only local changed, AlreadySynchronized otherwise.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Why doesn't the whole browser list flash/rebuild every time one item's state changes?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/presentation/files/filelist/FileListDiffCallback.kt",
+        "owncloudApp/src/main/java/com/owncloud/android/presentation/files/filelist/FileListAdapter.kt"
+      ],
+      "why": "FileListDiffCallback (whole file, 29-60) implements DiffUtil.Callback: areItemsTheSame compares OCFileWithSyncInfo by file.id (and footer by text), areContentsTheSame compares equality plus the FileListOption. FileListAdapter lines 74-87 constructs that callback, runs DiffUtil.calculateDiff, swaps the backing list, and calls diffResult.dispatchUpdatesTo(this) instead of notifyDataSetChanged.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Where do we decide that the user has to enter their passcode again after leaving the app, and where do the delay options come from?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/presentation/security/passcode/PassCodeManager.kt",
+        "owncloudApp/src/main/java/com/owncloud/android/presentation/security/LockTimeout.kt"
+      ],
+      "why": "PassCodeManager.passCodeShouldBeRequested (lines 79-85) compares abs(SystemClock.elapsedRealtime() - PREFERENCE_LAST_UNLOCK_TIMESTAMP) against the configured timeout and requires visibleActivities to be empty; onActivityStarted (44-67) is the lifecycle hook that launches PassCodeActivity (and defers to BiometricManager when biometrics are on). LockTimeout.toMilliseconds (lines 35-41) defines the DISABLED/IMMEDIATELY/ONE_MINUTE/FIVE_MINUTES/THIRTY_MINUTES values, and bayPassUnlockOnce (63-70) is the escape hatch used by onActivityStopped.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "When the server answers 401 on a request, do we transparently get fresh credentials and retry, or does the error surface to the caller?",
+      "gold_files": [
+        "owncloudComLibrary/src/main/java/com/owncloud/android/lib/common/ConnectionValidator.kt"
+      ],
+      "why": "ConnectionValidator.validate (lines 50-105) loops up to VALIDATION_RETRY_COUNT = 3 (line 226), scoring a status check plus canAccessRootFolder; on HTTP_UNAUTHORIZED it calls checkUnauthorizedAccess (185-223), which uses shouldInvalidateAccountCredentials (134-154), invalidateAccountCredentials (164-172, AccountManager.invalidateAuthToken + clearPassword) and then account.loadCredentials(context) to actually refresh. If the refresh fails it calls singleSessionManager.removeClientFor(account); the comment at line 220 notes that otherwise 'onExecute will finish with status 401'.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "If a user opens one of our files in another app through the Android file picker and saves changes there, how do those edits make it back to the server?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/presentation/documentsprovider/DocumentsStorageProvider.kt"
+      ],
+      "why": "DocumentsStorageProvider.openDocument (lines 96-179): when mode contains 'w' it opens the ParcelFileDescriptor with a close listener on the main looper; on close it either runs UploadFilesFromSystemUseCase (for the NONEXISTENT_DOCUMENT_ID upload-only case) or SynchronizeFileUseCase on a background thread, and if the result is SyncType.ConflictDetected it fires NotificationUtils.notifyConflict. Non-local files are downloaded first via DownloadFileUseCase in the wait loop at 111-125.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "When someone chooses the 'upload only' option on a public link, what number actually gets sent to the server for it?",
+      "gold_files": [
+        "owncloudApp/src/main/java/com/owncloud/android/presentation/sharing/shares/PublicShareDialogFragment.kt",
+        "owncloudComLibrary/src/main/java/com/owncloud/android/lib/resources/shares/RemoteShare.kt"
+      ],
+      "why": "PublicShareDialogFragment.onSaveShareSetting (lines 273-315) maps the checked radio button: shareViaLinkEditPermissionUploadFiles -> CREATE_PERMISSION_FLAG alone, ReadAndWrite -> CREATE or DELETE or UPDATE or READ, ReadOnly/default -> READ_PERMISSION_FLAG; initTitleAndLabels (lines 237-252) reverses the same mapping when editing. RemoteShare.kt companion (lines 53-73) gives the bit values: READ=1, UPDATE=2, CREATE=4, DELETE=8, SHARE=16 \u2014 so 'upload only' is 4 and read+write is 15.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "I need to add a column to one of the stored entities \u2014 what do I have to update so people upgrading from an older build don't lose data or crash on first launch?",
+      "gold_files": [
+        "owncloudData/src/main/java/com/owncloud/android/data/OwncloudDatabase.kt",
+        "owncloudData/src/main/java/com/owncloud/android/data/ProviderMeta.java"
+      ],
+      "why": "OwncloudDatabase.kt: the @Database annotation (lines ~66-92) lists the entities and an autoMigrations array (36->37 through 48->49, with AutoMigration39To40 as a spec), version = ProviderMeta.DB_VERSION and exportSchema = true; getDatabase (lines ~105-130) chains .addMigrations(MIGRATION_27_28 ... MIGRATION_42_43) for the hand-written ones in data/migrations/. ProviderMeta.java lines 35-36 hold NEW_DB_NAME = \"owncloud_database\" and DB_VERSION = 49, the number that must be bumped.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    }
+  ]
+}

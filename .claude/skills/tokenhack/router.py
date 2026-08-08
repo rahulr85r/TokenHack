@@ -25,41 +25,63 @@ from pathlib import Path
 
 # ----------------------------------------------------------------------
 # Tunable scoring constants — community-iterable. See README "Scoring".
+#
+# Every constant below can be overridden per-invocation with an environment
+# variable named TOKENHACK_<CONSTANT>, e.g. TOKENHACK_ETA=2.0. That exists so
+# `tests/eval.py` can ablate one signal at a time against the gold set — if you
+# change a weight, you should be able to show the recall number that justifies
+# it — and so a team can tune for their repo without forking the file.
 # ----------------------------------------------------------------------
 
-ALPHA = 1.5         # filename match weight
-BETA = 1.0          # path-affinity weight
-GAMMA = 0.5         # recency weight (file mtime decay)
-EPSILON = 0.3       # symbol popularity weight (incoming imports)
-ZETA = 0.5          # definition bonus (per matched def name)
-DELTA_1HOP = 1.0    # 1-hop import-graph propagation
-DELTA_2HOP = 0.3    # 2-hop import-graph propagation (decayed)
-ETA = 1.2           # prose channel weight (docstrings + README/docs)
+def _tunable(name, default):
+    raw = os.environ.get("TOKENHACK_" + name)
+    if raw is None:
+        return default
+    try:
+        return type(default)(raw)
+    except (TypeError, ValueError):
+        return default
 
-BM25_K1 = 1.5
-BM25_B = 0.75
 
-RECENCY_HALFLIFE_DAYS = 30
-HUB_FRACTION = 0.10              # files imported by >10% of corpus = hubs
-LOW_CONFIDENCE_SCORE = 0.5       # top score below this → flag low-confidence
-STALE_INDEX_FILE_THRESHOLD = 5   # N+ changed files since index build → warn
+ALPHA = _tunable("ALPHA", 1.5)         # filename match weight
+BETA = _tunable("BETA", 1.0)          # path-affinity weight
+GAMMA = _tunable("GAMMA", 0.5)         # recency weight (file mtime decay)
+EPSILON = _tunable("EPSILON", 0.3)       # symbol popularity weight (incoming imports)
+ZETA = _tunable("ZETA", 0.5)          # definition bonus (per matched def name)
+DELTA_1HOP = _tunable("DELTA_1HOP", 1.0)    # 1-hop import-graph propagation
+DELTA_2HOP = _tunable("DELTA_2HOP", 0.3)    # 2-hop import-graph propagation (decayed)
+# Prose channel weight (doc comments + markdown). Raised from 1.2 to 2.4 after
+# doc-comment extraction shipped: with the channel actually populated it is the
+# single most valuable signal in the ranker, because docs are written in the
+# words a question uses and identifiers are written in the words a compiler
+# needs. Measured on the 72-query gold set: ETA=0 -> hit@5 0.181, ETA=1.2 ->
+# 0.208, ETA=2.4 -> 0.264. Flat from 2.4 through 6.0, so 2.4 is the knee.
+ETA = _tunable("ETA", 2.4)
+
+BM25_K1 = _tunable("BM25_K1", 1.5)
+BM25_B = _tunable("BM25_B", 0.75)
+
+RECENCY_HALFLIFE_DAYS = _tunable("RECENCY_HALFLIFE_DAYS", 30)
+HUB_FRACTION = _tunable("HUB_FRACTION", 0.10)              # files imported by >10% of corpus = hubs
+LOW_CONFIDENCE_SCORE = _tunable("LOW_CONFIDENCE_SCORE", 0.5)       # top score below this → flag low-confidence
+STALE_INDEX_FILE_THRESHOLD = _tunable("STALE_INDEX_FILE_THRESHOLD", 5)   # N+ changed files since index build → warn
 
 # Lexical-vs-prior balance. When the query has a strong term match somewhere
 # in the corpus, scale down the *query-independent* priors (recency, popularity)
 # so they act as tie-breakers rather than primary signals.
-LEX_STRONG_THRESHOLD = 2.0       # max(bm25 + η·prose) ≥ this → strong lexical
-LEX_STRONG_PRIOR_SCALE = 0.25    # multiplier applied to GAMMA, EPSILON when strong
+LEX_STRONG_THRESHOLD = _tunable("LEX_STRONG_THRESHOLD", 2.0)       # max(bm25 + η·prose) ≥ this → strong lexical
+LEX_STRONG_PRIOR_SCALE = _tunable("LEX_STRONG_PRIOR_SCALE", 0.25)    # multiplier applied to GAMMA, EPSILON when strong
 
 # Noise-hub penalty. A file with popularity > 0 but no query-derived signal
 # (no BM25 / prose hit, no filename match, no path affinity, no def bonus) is
 # the classic "noise hub" failure: a popular utility unrelated to the query
 # bubbling up purely on its import-count prior. Dock it instead of crediting.
-NOISE_HUB_PENALTY = 0.8
+NOISE_HUB_PENALTY = _tunable("NOISE_HUB_PENALTY", 0.8)
 
 # Boost for files that match "callers of X" intent (either define X or import
 # a file that defines X). Tunable — kept above prior magnitudes so callers-of
 # results dominate the ranking when the mode fires.
-CALLERS_BOOST = 3.0
+CALLERS_BOOST = _tunable("CALLERS_BOOST", 3.0)
 
 # Impl-pattern boost — for interface-heavy codebases (Java, JDK, much of
 # Spring/netty/JDBC) where the conceptual name lives on an interface and the
@@ -73,8 +95,8 @@ CALLERS_BOOST = 3.0
 # boost, since the user is explicitly asking for the impl, not the interface.
 IMPL_PREFIXES = ("default", "abstract", "base", "internal")
 IMPL_SUFFIXES = ("impl", "internal")
-IMPL_BOOST = 0.8                 # weight per overlapping core token
-IMPL_INTENT_MULTIPLIER = 1.5     # extra when query has impl-walkthrough intent
+IMPL_BOOST = _tunable("IMPL_BOOST", 0.8)                 # weight per overlapping core token
+IMPL_INTENT_MULTIPLIER = _tunable("IMPL_INTENT_MULTIPLIER", 1.5)     # extra when query has impl-walkthrough intent
 IMPL_INTENT_RE = re.compile(
     r"\b(implementation|implements?|walk\s*(?:me\s*)?through|how\s+does|how\s+is|"
     r"internals?|actually|under\s+the\s+hood|dispatch(?:es|er)?)\b",
@@ -92,8 +114,8 @@ IMPL_INTENT_RE = re.compile(
 #      so common-token explosions ("matched 'get' in 300 files") cannot
 #      all participate simultaneously. Files below the cutoff still rank
 #      by their own lexical signal — they just don't *radiate* it.
-MIN_LEX_SEED = 1.0
-MAX_LEX_SEEDS = 25
+MIN_LEX_SEED = _tunable("MIN_LEX_SEED", 1.0)
+MAX_LEX_SEEDS = _tunable("MAX_LEX_SEEDS", 25)
 
 # Filename-gated graph_prop compression. The raw graph_prop bonus accumulates
 # into the thousands for popular receivers, which is *useful* when that file
@@ -108,12 +130,55 @@ MAX_LEX_SEEDS = 25
 # graph_prop is log-compressed so it acts as a tie-breaker rather than a
 # dominant signal. This keeps canonical-popular files at the top of symbol
 # lookups while preventing popular utilities from dominating concept queries.
-GRAPH_FILENAME_GATE = 2.0        # filename-match threshold for ungated graph credit
-GRAPH_PROP_SCALE = 2.0           # log-compression scale applied below the gate
+GRAPH_FILENAME_GATE = _tunable("GRAPH_FILENAME_GATE", 2.0)        # filename-match threshold for ungated graph credit
+GRAPH_PROP_SCALE = _tunable("GRAPH_PROP_SCALE", 2.0)           # log-compression scale applied below the gate
 
-TOP_K = 5
-FUZZY_MAX_PER_TOKEN = 2
-FUZZY_CUTOFF = 0.85
+# Hard ceiling on graph propagation, relative to the file's OWN lexical score.
+#
+# The filename gate above was meant to keep graph_prop bounded, but it is
+# trivially cleared: a natural-language question contains many words, so any
+# well-connected file with two of them in its basename gets *raw* credit. On
+# netty, "how many bytes does it ask for on each socket read" gave
+# SocketReadPendingTest.java a graph_prop of 333 against a lexical score of 22 —
+# graph propagation was 94% of the winning score, and the file that actually
+# answers the question ranked 1,716th.
+#
+# Propagation is evidence that a *neighbour* matched, which is weaker than
+# matching yourself. It may promote a plausible file; it must not invent one.
+# So graph_prop is now always log-compressed AND capped at a multiple of the
+# file's own query-derived score.
+GRAPH_PROP_CAP_RATIO = _tunable("GRAPH_PROP_CAP_RATIO", 1.0)       # graph_prop <= this * (own lexical score + floor)
+GRAPH_PROP_CAP_FLOOR = _tunable("GRAPH_PROP_CAP_FLOOR", 1.0)       # lets a zero-lexical neighbour still surface, barely
+
+# Test / benchmark / fixture demotion.
+#
+# Tests restate a concept's vocabulary far more densely than the implementation
+# does, which is precisely what BM25 rewards — so on netty the top three results
+# for a pipeline question were two testsuite files and a microbenchmark. Tests
+# are useful context, but they belong in the paired-test slot, not the headline.
+# Suppressed unless the question is explicitly about tests.
+TEST_PATH_PENALTY = _tunable("TEST_PATH_PENALTY", 0.35)         # multiplier applied to a test file's positive score
+TEST_PATH_RE = re.compile(
+    r"(^|/)(tests?|testsuite|androidTest|__tests__|__mocks__|spec|specs|"
+    r"microbench|benchmarks?|fixtures?|examples?|testFixtures)(/|$)"
+    r"|(^|/)src/test/"
+    r"|[._-](test|tests|spec|benchmark)\.[A-Za-z0-9]+$"
+    r"|(Test|Tests|TestCase|Spec|Benchmark)\.[A-Za-z0-9]+$",
+    re.I,
+)
+TEST_INTENT_RE = re.compile(r"\b(test|tests|testing|spec|specs|benchmark|fixture|mock)\w*\b", re.I)
+
+TOP_K = _tunable("TOP_K", 5)
+FUZZY_MAX_PER_TOKEN = _tunable("FUZZY_MAX_PER_TOKEN", 2)
+
+# Structural matches (filename, path) are scaled by token IDF so a hit on a
+# distinctive word counts for more than a hit on `read` or `data`. IDF_REFERENCE
+# is roughly the IDF of an ordinarily-informative term in a mid-sized corpus;
+# dividing by it keeps the weight near 1.0 there, so ALPHA / BETA keep meaning.
+IDF_REFERENCE = _tunable("IDF_REFERENCE", 3.0)
+IDF_WEIGHT_CAP = _tunable("IDF_WEIGHT_CAP", 2.0)             # a very rare token is worth at most 2 ordinary ones
+MIN_QUERY_TOKEN_IDF = _tunable("MIN_QUERY_TOKEN_IDF", 0.35)       # below this a query token is corpus-wide filler
+FUZZY_CUTOFF = _tunable("FUZZY_CUTOFF", 0.85)
 
 CODE_STOPWORDS = set("""
 the is a an and or but in on at to for of with by from as this that these those
@@ -131,6 +196,29 @@ true false null nil none undefined import export default async await module
 _CAMEL_RE = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|\d+")
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 _SPLIT_RE = re.compile(r"[_\-/.:\\]+")
+
+
+def stem_variant(token: str) -> str:
+    """Fold a token to a crude singular/base form for structural matching.
+
+    Deliberately minimal — no Porter stemmer, no dictionary. It exists because
+    English questions and code identifiers disagree on number and tense far more
+    often than on the root: a question says "bytes", "credentials", "retries",
+    "uploading" while the code says `ByteBuf`, `Credential`, `retry`, `upload`.
+    Those near-misses cost real recall and one string operation fixes most of
+    them. Applied only to structural signals (filename / path / span selection),
+    never to the BM25 channels, where changing the term distribution would
+    invalidate the IDF table computed over the corpus.
+    """
+    if len(token) < 4:
+        return token
+    # Plural folding only. A gerund rule was tried and removed: "string" -> "str"
+    # and "setting" -> "sett" collide with real identifiers, and the recall it
+    # bought did not cover that.
+    for suffix, repl in (("ies", "y"), ("es", ""), ("s", "")):
+        if token.endswith(suffix) and len(token) - len(suffix) >= 3:
+            return token[:len(token) - len(suffix)] + repl
+    return token
 
 
 def split_identifier(token: str):
@@ -372,21 +460,40 @@ def bm25_score(query_tokens, doc_tokens, idf, avgdl, matched_out=None):
     return score
 
 
-def filename_match(query_tokens, rel_path):
-    """Count query tokens that appear in the file's basename stem.
+def _idf_weight(token, idf):
+    """Scale a structural (non-BM25) match by how informative the token is.
+
+    Filename and path matches used to count 1.0 per token regardless of what
+    the token was, so a question mentioning `read` and `socket` scored the same
+    filename hit as one mentioning `idempotency` and `backoff`. In a long
+    natural-language question most tokens are near-worthless — on netty, `netty`
+    itself has an IDF of 0.01 — and counting them equally is what let generic
+    files win. Normalised against IDF_REFERENCE so weights stay near 1.0 for an
+    ordinary term and the existing ALPHA / BETA defaults keep their meaning.
+    """
+    return min(idf.get(token, 0.0) / IDF_REFERENCE, IDF_WEIGHT_CAP)
+
+
+def filename_match(query_tokens, rel_path, idf=None):
+    """IDF-weighted count of query tokens appearing in the file's basename stem.
 
     The original (mixed-case) stem is fed to `split_identifier` so it can
     find CamelCase boundaries; the lowercased form is added for whole-name
-    matches.
+    matches. `idf=None` falls back to unweighted counting (used by the graph
+    gate, which wants a raw token count rather than a score).
     """
     stem = os.path.splitext(os.path.basename(rel_path))[0]
     stem_tokens = set(split_identifier(stem))
     stem_tokens.add(stem.lower())
-    return float(sum(1 for q in query_tokens if q in stem_tokens))
+    stem_tokens |= {stem_variant(t) for t in stem_tokens}
+    if idf is None:
+        return float(sum(1 for q in query_tokens if q in stem_tokens))
+    return float(sum(_idf_weight(q, idf) for q in query_tokens
+                     if q in stem_tokens or stem_variant(q) in stem_tokens))
 
 
-def path_affinity(query_tokens, rel_path):
-    """Count query tokens that appear in any path-segment of the file."""
+def path_affinity(query_tokens, rel_path, idf=None):
+    """IDF-weighted count of query tokens appearing in any path segment."""
     parts = []
     for chunk in re.split(r"[\\/]+", os.path.dirname(rel_path)):
         if not chunk:
@@ -396,7 +503,15 @@ def path_affinity(query_tokens, rel_path):
     if not parts:
         return 0.0
     parts_set = set(parts)
-    return float(sum(1 for q in query_tokens if q in parts_set))
+    parts_set |= {stem_variant(t) for t in parts_set}
+    if idf is None:
+        return float(sum(1 for q in query_tokens if q in parts_set))
+    return float(sum(_idf_weight(q, idf) for q in query_tokens
+                     if q in parts_set or stem_variant(q) in parts_set))
+
+
+def is_test_path(rel_path):
+    return bool(TEST_PATH_RE.search(rel_path))
 
 
 def recency_score(mtime, now):
@@ -668,6 +783,18 @@ def rank(query: str, index: dict):
     now = time.time()
     hub_set = identify_hubs(rev, len(files))
     has_impl_intent = bool(IMPL_INTENT_RE.search(query))
+    wants_tests = bool(TEST_INTENT_RE.search(query))
+
+    # Drop corpus-wide filler from the query. A natural-language question carries
+    # words that are technically in the vocabulary but carry no discrimination
+    # ("netty" in netty has IDF 0.01, "data" in a data layer, "app" in an app).
+    # BM25 already discounts them, but they were still counted at full weight by
+    # filename_match and path_affinity. Keep at least one token so a query made
+    # entirely of common words still retrieves something.
+    informative = [t for t in query_tokens
+                   if max(idf_code.get(t, 0.0), idf_prose.get(t, 0.0)) >= MIN_QUERY_TOKEN_IDF]
+    if informative:
+        query_tokens = informative
 
     # Pass 1 — collect raw per-file signals so we can derive a corpus-wide
     # lexical-strength measurement before applying prior weights.
@@ -677,8 +804,8 @@ def rank(query: str, index: dict):
         matched: set = set()
         bm = bm25_score(query_tokens, channels["code"], idf_code, avgdl_code, matched_out=matched)
         prose_bm = bm25_score(query_tokens, channels["prose"], idf_prose, avgdl_prose, matched_out=matched)
-        fn = filename_match(query_tokens, rel)
-        pa = path_affinity(query_tokens, rel)
+        fn = filename_match(query_tokens, rel, idf_code)
+        pa = path_affinity(query_tokens, rel, idf_code)
         rc = recency_score(entry.get("mtime", 0), now)
         pop = popularity_score(entry, max_pop)
         defb = definition_bonus(query_tokens, entry)
@@ -686,6 +813,12 @@ def rank(query: str, index: dict):
             "bm25": bm, "prose": prose_bm, "filename": fn, "path_aff": pa,
             "recency": rc, "popularity": pop, "def_bonus": defb,
             "matched": matched,
+            # Unweighted token count, used only by the graph gate below, which
+            # asks "how many query words are in this name" rather than "how good
+            # is this name" — a threshold on a weighted score would drift with
+            # corpus size.
+            "filename_tokens": filename_match(query_tokens, rel),
+            "is_test": is_test_path(rel),
         }
 
     # Fix #2 — strong-lexical detection. When something in the corpus matches
@@ -710,6 +843,7 @@ def rank(query: str, index: dict):
     # path / def / callers_boost) we keep priors as tie-breakers in the
     # final ranking while preventing them from poisoning propagation.
     lexical_seeds = {}
+    lex_by_file = {}
     for rel, r in raw.items():
         impl_b = impl_pattern_boost(query_tokens, rel, has_impl_intent)
 
@@ -758,8 +892,19 @@ def rank(query: str, index: dict):
             + impl_b
             + callers_boost
         )
+
+        # Demote tests / benchmarks / fixtures unless the question is about them.
+        # Applied to positive scores only, so a penalised file can't be pushed
+        # below a file with no signal at all.
+        is_test = r["is_test"] and not wants_tests
+        if is_test:
+            if total > 0:
+                total *= TEST_PATH_PENALTY
+            lex *= TEST_PATH_PENALTY
+
         if (lex >= MIN_LEX_SEED and has_query_signal) or callers_boost > 0:
             lexical_seeds[rel] = lex
+        lex_by_file[rel] = lex
 
         if total > 0 or r["matched"] or callers_boost > 0 or impl_b > 0:
             breakdowns[rel] = {
@@ -771,6 +916,7 @@ def rank(query: str, index: dict):
                 "callers_boost": callers_boost,
                 "impl_boost": impl_b,
                 "noise_hub": noise_hub,
+                "is_test": is_test,
             }
             base_scores[rel] = total
 
@@ -794,19 +940,29 @@ def rank(query: str, index: dict):
         # Filename-gated compression: if the file *also* matches the query
         # by name (likely the canonical popular file), keep graph_prop raw.
         # Otherwise log-compress so generic utility hubs can't dominate.
-        fn_score = raw.get(rel, {}).get("filename", 0.0)
+        fn_tokens = raw.get(rel, {}).get("filename_tokens", 0.0)
         if raw_b <= 0:
             b = 0.0
-        elif fn_score >= GRAPH_FILENAME_GATE:
-            b = raw_b
         else:
+            # Always compress. The old code handed out *raw* graph_prop to any
+            # file clearing the filename gate, which let a well-connected test
+            # file accumulate 333 points against a 22-point lexical score.
             b = GRAPH_PROP_SCALE * math.log1p(raw_b)
+            if fn_tokens >= GRAPH_FILENAME_GATE:
+                b *= 2.0   # the canonical-popular case: name also matches
+            # Then cap against the file's own query-derived evidence, so
+            # propagation can promote a plausible neighbour but never invent one.
+            own_lex = max(lex_by_file.get(rel, 0.0), 0.0)
+            b = min(b, GRAPH_PROP_CAP_RATIO * own_lex + GRAPH_PROP_CAP_FLOOR)
+            if raw.get(rel, {}).get("is_test") and not wants_tests:
+                b *= TEST_PATH_PENALTY
         if rel not in breakdowns:
             breakdowns[rel] = {
                 "bm25": 0.0, "prose": 0.0, "filename": 0.0, "path_aff": 0.0,
                 "recency": 0.0, "popularity": 0.0, "def_bonus": 0.0,
                 "graph_prop": b, "matched_tokens": set(),
                 "callers_boost": 0.0, "impl_boost": 0.0, "noise_hub": False,
+                "is_test": False,
             }
         else:
             breakdowns[rel]["graph_prop"] = b
@@ -827,7 +983,7 @@ def rank(query: str, index: dict):
 # Symbol-span staging — point Claude at the matched defs, not whole files
 # ----------------------------------------------------------------------
 
-MAX_SPANS_PER_FILE = 4   # cap so a broad query can't list every def in a file
+MAX_SPANS_PER_FILE = _tunable("MAX_SPANS_PER_FILE", 4)   # cap so a broad query can't list every def in a file
 
 # A matched *class* (or Swift `extension`, or a top-level Kotlin object) has an
 # end_line at the end of the class — i.e. essentially the whole file. Staging
@@ -844,7 +1000,7 @@ MAX_SPANS_PER_FILE = 4   # cap so a broad query can't list every def in a file
 # Signal-Android, DuckDuckGo iOS, OwnCloud, blinkit): staging every matched
 # span read 68% of the whole-file bytes; dropping container spans in favour of
 # the tight ones reads 16%.
-WIDE_SPAN_FRACTION = 0.5
+WIDE_SPAN_FRACTION = _tunable("WIDE_SPAN_FRACTION", 0.5)
 
 
 def _file_line_extent(entry):
@@ -928,6 +1084,22 @@ def format_output(query, index, ranked, breakdowns, meta, index_path):
     built_at = index.get("built_at", "unknown")
     n_files = index.get("n_files_indexed", 0)
     lines.append(f"[tokenhack: index built {built_at}, {n_files} files indexed]")
+
+    # Coverage warning. The indexer records how many files it had to skip and
+    # why, but nothing ever read it — so on a repo written in a language with no
+    # adapter (TypeScript before this shipped, Go, Rust, Ruby, C#) the router
+    # would confidently rank the handful of files it *could* parse and give no
+    # hint that it had ignored most of the codebase. Silent partial coverage is
+    # worse than no coverage: it looks like an answer.
+    skipped_no_adapter = (index.get("skip_reasons") or {}).get("no-adapter", 0)
+    total_seen = n_files + skipped_no_adapter
+    if skipped_no_adapter and total_seen and skipped_no_adapter / total_seen >= 0.25:
+        lines.append(
+            f"[coverage warning: {skipped_no_adapter} of {total_seen} source files "
+            f"had no language adapter and are NOT in the index — results below cover "
+            f"only {100 * n_files // total_seen}% of this repo. Prefer grep for anything "
+            f"in an unindexed language]"
+        )
 
     # Staleness warning (conditional)
     root = index_path.parent.parent.parent.parent.parent if index_path else None
@@ -1036,10 +1208,22 @@ def format_output(query, index, ranked, breakdowns, meta, index_path):
             lines.append(f"      ↳ read {format_span(start, end)}{suffix}")
 
     if test_pairs:
-        lines.append("")
-        lines.append("Paired test files:")
-        for src, tst in test_pairs:
-            lines.append(f"  - {tst}  (test for {src})")
+        # Label by what each file actually IS. When a test ranked in the top-K
+        # its partner is the *implementation*, and the old wording printed
+        # "DefaultChannelPipeline.java (test for DefaultChannelPipelineTest.java)"
+        # — naming the file that answers the question as the test of its own test.
+        impl_pairs = [(r, p) for r, p in test_pairs if is_test_path(r)]
+        tst_pairs = [(r, p) for r, p in test_pairs if not is_test_path(r)]
+        if impl_pairs:
+            lines.append("")
+            lines.append("Implementations of the tests above (usually the real answer):")
+            for tst, impl in impl_pairs:
+                lines.append(f"  - {impl}  (implementation under test in {tst})")
+        if tst_pairs:
+            lines.append("")
+            lines.append("Paired test files:")
+            for src, tst in tst_pairs:
+                lines.append(f"  - {tst}  (test for {src})")
 
     return "\n".join(lines)
 

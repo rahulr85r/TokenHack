@@ -1,0 +1,120 @@
+{
+  "repo": "netty",
+  "note": "Ground truth built by agents reading the repo only; TokenHack's router and index were off-limits during construction.",
+  "queries": [
+    {
+      "question": "If the app keeps handing us data faster than the socket drains it, how does Netty tell the app to slow down instead of just growing the queue forever?",
+      "gold_files": [
+        "transport/src/main/java/io/netty/channel/ChannelOutboundBuffer.java",
+        "transport/src/main/java/io/netty/channel/WriteBufferWaterMark.java"
+      ],
+      "why": "ChannelOutboundBuffer.incrementPendingOutboundBytes/decrementPendingOutboundBytes (lines 176-208) compare the running TOTAL_PENDING_SIZE against getWriteBufferHighWaterMark()/LowWaterMark and call setUnwritable/setWritable; setUnwritable/setWritable/fireChannelWritabilityChanged (lines 618-660) CAS the `unwritable` bitfield and fire pipeline.fireChannelWritabilityChanged(). WriteBufferWaterMark lines 20-42 define the 32KB/64KB defaults and document that isWritable() flips false above high and back true below low.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How does Netty warn me at runtime that a buffer got thrown away without being freed, and how do I make it show where it was allocated?",
+      "gold_files": [
+        "common/src/main/java/io/netty/util/ResourceLeakDetector.java"
+      ],
+      "why": "ResourceLeakDetector.track0 (lines 280-289) samples with ThreadLocalRandom.nextInt(samplingInterval) unless the level is PARANOID, and registers a DefaultResourceLeak against a ReferenceQueue; reportLeak (lines 311-342) drains that queue and calls reportTracedLeak/reportUntracedLeak (lines 344-361), which log \"LEAK: ...release() was not called before it's garbage-collected\". The Level enum (line 65) plus TARGET_RECORDS / getInitialHint (lines 276-278) is what turns on the allocation-site records under ADVANCED/PARANOID.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "What does the resolver do when a nameserver's answer is too big to fit in a single UDP datagram?",
+      "gold_files": [
+        "resolver-dns/src/main/java/io/netty/resolver/dns/DnsQueryContext.java",
+        "resolver-dns/src/main/java/io/netty/resolver/dns/DnsNameResolver.java"
+      ],
+      "why": "DnsQueryContext.finishSuccess (lines 285-300) short-circuits into retryWithTcp when the response carries the TC bit, and retryWithTcp (lines 349-380) opens a TCP connection to the same nameserver, builds a TcpDnsQueryContext with a TcpDnsResponseDecoder, and falls back to the truncated answer if the TCP connect fails. The caller is DnsNameResolver's UDP response handler at lines 1540-1558 (`qCtx.finishSuccess(res, res.isTruncated())`).",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How do we defend against an HTTP/2 peer that spams us with pings and stream resets but never reads our replies?",
+      "gold_files": [
+        "codec-http2/src/main/java/io/netty/handler/codec/http2/Http2ControlFrameLimitEncoder.java"
+      ],
+      "why": "Http2ControlFrameLimitEncoder (whole file, ~30-107) wraps writeSettingsAck/writePing(ack)/writeRstStream and routes each through handleOutstandingControlFrames (lines 82-107): it counts outstandingControlFrames, tries one ctx.flush() at the limit, and on still hitting maxOutstandingControlFrames raises a connection-level ENHANCE_YOUR_CALM Http2Exception, notifies the lifecycle manager and closes the channel. The class javadoc explicitly calls this DDOS mitigation.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How does the server choose which certificate/SSL context to use based on the domain the client is connecting to?",
+      "gold_files": [
+        "handler/src/main/java/io/netty/handler/ssl/SniHandler.java",
+        "handler/src/main/java/io/netty/handler/ssl/AbstractSniHandler.java"
+      ],
+      "why": "AbstractSniHandler.extractSniHostname (lines 38-122) parses the ClientHello record byte-by-byte to pull the server_name extension (extensionType == 0) and lowercases it; it is invoked at line 180. SniHandler.lookup (lines 145-148) maps that hostname through the AsyncMapping to an SslContext and onLookupComplete/replaceHandler (lines 150-194) swap this handler out for a real SslHandler built from the selected context.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "How does Netty decide how many bytes to ask for on each socket read, and does it grow or shrink that guess over time?",
+      "gold_files": [
+        "transport/src/main/java/io/netty/channel/AdaptiveRecvByteBufAllocator.java",
+        "common/src/main/java/io/netty/util/internal/AdaptiveCalculator.java"
+      ],
+      "why": "AdaptiveRecvByteBufAllocator (lines 32-71) defines DEFAULT_MINIMUM 64 / DEFAULT_INITIAL 2048 / DEFAULT_MAXIMUM 65536 and its HandleImpl delegates guess() and readComplete()/lastBytesRead() to an AdaptiveCalculator. AdaptiveCalculator.record (lines 117-131) is the actual algorithm: jump the size-table index up by INDEX_INCREMENT=4 when the read filled the buffer, and step down by INDEX_DECREMENT=1 only after two consecutive under-fills (the `decreaseNow` latch); SIZE_TABLE is built at lines 34-49.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "When a new connection is accepted, what picks the worker thread that will own it from then on?",
+      "gold_files": [
+        "transport/src/main/java/io/netty/bootstrap/ServerBootstrap.java",
+        "common/src/main/java/io/netty/util/concurrent/DefaultEventExecutorChooserFactory.java",
+        "common/src/main/java/io/netty/util/concurrent/MultithreadEventExecutorGroup.java"
+      ],
+      "why": "ServerBootstrapAcceptor.channelRead (lines 221-255) adds the child handler/options then calls childGroup.register(child); MultithreadEventLoopGroup.register delegates to next(), and MultithreadEventExecutorGroup.next() (lines 136-139) returns chooser.next() where chooser was built at line 115. DefaultEventExecutorChooserFactory (whole file) implements the round-robin: PowerOfTwoEventExecutorChooser masks with `length - 1` when the count is a power of two (lines 43-55), otherwise GenericEventExecutorChooser uses an AtomicLong modulo (lines 57-72).",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "If nothing in my pipeline consumes an inbound message, does it get freed or does it leak?",
+      "gold_files": [
+        "transport/src/main/java/io/netty/channel/DefaultChannelPipeline.java"
+      ],
+      "why": "DefaultChannelPipeline.onUnhandledInboundMessage (lines 1201-1222) logs \"Discarded inbound message ... that reached at the tail of the pipeline\" and then calls ReferenceCountUtil.release(msg) in a finally block; onUnhandledInboundException (lines 1171-1180) does the same for a Throwable that falls off the end. These are wired in from TailContext.channelRead/exceptionCaught at lines 1309-1320.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "With the pooled allocator, how is a thread mapped to one of the memory pools, and what stops all threads from piling onto the same one?",
+      "gold_files": [
+        "buffer/src/main/java/io/netty/buffer/PooledByteBufAllocator.java"
+      ],
+      "why": "PooledByteBufAllocator.PoolThreadLocalCache.initialValue (lines 516-551) picks a heap and a direct arena via leastUsedArena and builds the per-thread PoolThreadCache; leastUsedArena (lines 558-577) scans the arena array and returns the one with the smallest numThreadCaches counter (with a CACHE_NOT_USED fast path). Arena counts default to 2 * cores via DEFAULT_NUM_HEAP_ARENA / DEFAULT_NUM_DIRECT_ARENA (lines 41, 106, 412-419), and onRemoval (lines 553-556) frees the cache when the thread dies.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "My handler still gets flooded with events right after I turn off auto-read, because the decoder emitted several messages from one read. How do I make it hand me one at a time?",
+      "gold_files": [
+        "handler/src/main/java/io/netty/handler/flow/FlowControlHandler.java"
+      ],
+      "why": "FlowControlHandler class javadoc (lines 33-64) states the exact problem (HttpObjectDecoder firing HttpRequest immediately followed by LastHttpContent despite setAutoRead(false)). channelRead (lines 149-164) queues every message into a RecyclableArrayDeque and calls dequeue with minConsume derived from `shouldConsume`; read (lines 136-147) releases exactly one queued message per downstream read() and only issues ctx.read() upstream when the queue was empty; dequeue (lines 189-210) loops only while autoRead is on or minConsume is unmet.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "A message arrives split across several TCP segments \u2014 where are the leftover bytes kept between reads, and what keeps that buffer from growing without bound?",
+      "gold_files": [
+        "codec-base/src/main/java/io/netty/handler/codec/ByteToMessageDecoder.java"
+      ],
+      "why": "ByteToMessageDecoder.channelRead (lines 285-333) joins each incoming ByteBuf into the `cumulation` field via the pluggable Cumulator before calling callDecode; MERGE_CUMULATOR / COMPOSITE_CUMULATOR and expandCumulation are at lines 83-123 and 574. The bound is the numReads/discardAfterReads pair (fields at 191-192, default 16, settable at 226-231): once exceeded, lines 316-321 call discardSomeReadBytes() to reclaim already-consumed bytes, citing the OOME issue #4275. handlerRemoved (lines 258-277) forwards or releases whatever is still cumulated.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "What kills a TLS connection if the client connects but never finishes the handshake?",
+      "gold_files": [
+        "handler/src/main/java/io/netty/handler/ssl/SslHandler.java"
+      ],
+      "why": "SslHandler.applyHandshakeTimeout (lines 2244-2270) schedules a task on the channel executor for handshakeTimeoutMillis (field default 10000 at line 443, settable at 507-513); on fire it fails the handshakePromise with SslHandshakeTimeoutException, calls SslUtils.handleHandshakeFailure and releaseAndFailAll, and the promise listener cancels the timeout when the handshake completes. It is armed from startHandshakeProcessing paths at lines 2157 and 2205, which channelActive (2286-2293) triggers for client mode.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    }
+  ]
+}
