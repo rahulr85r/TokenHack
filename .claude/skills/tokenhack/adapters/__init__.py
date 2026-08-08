@@ -20,8 +20,9 @@ from . import python as _python
 from . import jvm as _jvm
 from . import swift as _swift
 from . import javascript as _javascript
+from . import typescript as _typescript
 
-_MODULES = (_python, _jvm, _swift, _javascript)
+_MODULES = (_python, _jvm, _swift, _javascript, _typescript)
 
 
 def _build_ext_map():

@@ -1,0 +1,119 @@
+{
+  "repo": "Signal-Android",
+  "note": "Ground truth built by agents reading the repo only; TokenHack's router and index were off-limits during construction.",
+  "queries": [
+    {
+      "question": "When a job fails, how long do we wait before trying again, and what makes us finally give up on it?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/jobmanager/JobRunner.java",
+        "app/src/main/java/org/thoughtcrime/securesms/jobmanager/impl/BackoffUtil.java",
+        "app/src/main/java/org/thoughtcrime/securesms/jobmanager/Job.java"
+      ],
+      "why": "JobRunner.run(Job) lines 85-128 contains both give-up conditions: isJobExpired() (lines 130-138, createTime + lifespan) and the max-attempts check at lines 119-125 that converts a retry result into a failure. BackoffUtil.exponentialBackoff (lines 13-24) is the actual wait computation: 2^min(attempt,30) seconds, clamped to maxBackoff, times 0.75-1.25 jitter. Job.defaultBackoff() line 120-123 wires the two together via RemoteConfig.getDefaultMaxBackoff(); JobController.onRetry lines 298-318 persists it and schedules.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "I need to add a column to one of the tables \u2014 where does the schema version live and how do I register the upgrade step?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/database/helpers/SignalDatabaseMigrations.kt"
+      ],
+      "why": "SignalDatabaseMigrations.kt holds the ordered `migrations` map (entries through `316 to V316_AddVerifiedGroupNameHashMigration` around lines 300-352), the `const val DATABASE_VERSION = 316` right below it, and the `migrate()` driver (lines ~355-395) that runs each eligible SignalDatabaseMigration inside a transaction, sets db.version per step, and has the special FTS-corruption recovery path.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "How do we decide whether an outgoing message can be delivered without the server learning who it came from?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/crypto/SealedSenderAccessUtil.java"
+      ],
+      "why": "SealedSenderAccessUtil.getTargetUnidentifiedAccess (lines ~138-176) is the decision: it switches on the recipient's SealedSenderAccessMode (UNKNOWN/DISABLED/ENABLED/UNRESTRICTED) and derives the access key from their profile key, or uses the all-zero UNRESTRICTED_KEY (line 38), returning null when we must fall back to an identified send. getAccessFor (lines 82-108) fetches our sender certificate, and getUnidentifiedAccessCertificateType (lines ~124-130) picks ACI_AND_E164 vs ACI_ONLY based on phone-number sharing.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Where is the priority order for those one-time promo/nag cards that show at the top of the chat list, and how do I add another one?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/megaphone/Megaphones.java"
+      ],
+      "why": "Megaphones.java has a class-level doc (lines 64-76) that literally lists the three steps to add one (add an Event enum, return it from forRecord, include it in buildDisplayOrder). buildDisplayOrder (lines ~118-148) is the LinkedHashMap that defines priority order with per-event MegaphoneSchedule (ALWAYS/NEVER/RecurringSchedule), including the 'Great Wall of PIN Reminder' comment. getNextMegaphone (lines 89-110) filters by record.getFinished() and schedule.shouldDisplay() and returns the first match.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "For users in countries where the service is blocked, how do we end up talking to different hosts?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/push/SignalServiceNetworkAccess.kt"
+      ],
+      "why": "SignalServiceNetworkAccess.getConfiguration(e164) lines 295-319 parses the country code from the user's E164 and picks censorshipConfiguration[countryCode] / defaultCensoredConfiguration vs uncensoredConfiguration based on SettingsValues.CensorshipCircumventionEnabled (ENABLED/DISABLED/DEFAULT). The per-country map is at line 231, the fronting hosts (Fastly/Google reflector) are the F_*/G_HOST constants at lines 79-86, the fallback DNS chain is at lines 47-63, and buildGConfiguration (line 333+) assembles the fronted URLs.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "In a very active group chat my phone makes noise for every single message \u2014 where would I change that?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/notifications/v2/NotificationFactory.kt",
+        "app/src/main/java/org/thoughtcrime/securesms/notifications/v2/DefaultMessageNotifier.kt"
+      ],
+      "why": "NotificationFactory.shouldAlert (lines 209-218) picks a throttle Duration \u2014 GROUP_THROTTLE = 20.seconds (line 52) for groups where you weren't mentioned, STILL_DECRYPTING_INDIVIDUAL_THROTTLE = 5.seconds (line 51) \u2014 and compares it against the thread's lastNotificationTimestamp; the result drives setOnlyAlertOnce(!shouldAlert) at line 258. DefaultMessageNotifier lines 196-214 computes the alertOverrides set from REMINDER_TIMEOUT and updateReminderTimestamps (242-259) implements the repeat-alert count.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "What decides whether a chat from someone I've never talked to shows the accept/block bar instead of the normal compose box?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/messagerequests/MessageRequestRepository.java",
+        "app/src/main/java/org/thoughtcrime/securesms/recipients/RecipientUtil.java"
+      ],
+      "why": "MessageRequestRepository.getMessageRequestState (lines 99-157) is the state machine: blocked -> BLOCKED_GROUP/INDIVIDUAL_BLOCKED, pending GV2 member -> GROUP_V2_INVITE, otherwise INDIVIDUAL / NONE_HIDDEN / INDIVIDUAL_HIDDEN depending on RecipientUtil.getRecipientHiddenState. The underlying predicate is RecipientUtil.isMessageRequestAccepted(threadId, recipient) at lines 387-397 \u2014 self, profile sharing, system contact, unregistered, or hasSentMessageInThread / noSecureMessagesAndNoCallsInThread (407-419).",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Once the countdown on a self-destructing message runs out, what actually removes it from the device?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/service/ExpiringMessageManager.java"
+      ],
+      "why": "ExpiringMessageManager keeps a TreeSet of ExpiringMessageReference sorted by expiresAtMillis (lines 23, 145-156). ProcessTask.run (lines 86-117) waits on the head of the set, sets an ExpirationListener alarm for the remaining time (line 99), and when the deadline passes calls mmsDatabase/smsDatabase.deleteMessage (lines 111-114). scheduleDeletion (39-61) computes expiresAt as startedAt + expiresIn, and LoadTask (69-83) repopulates the set at startup from getExpirationStartedMessages().",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How long do we keep the socket alive after the user leaves the app, and when do we fall back to push instead?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/messages/IncomingMessageObserver.kt"
+      ],
+      "why": "IncomingMessageObserver.isConnectionNecessary() lines 233-263 is the rule: registered && !unauthorizedReceived && (appVisible || timeIdle < maxBackgroundTime || !fcmEnabled) && hasNetwork. maxBackgroundTime is 2 minutes normally / 10 seconds when censored (lines 86-88), websocketReadTimeout is 1 minute / 30s (82-84). onAppBackgrounded (225-231) stamps lastInteractionTime, waitForConnectionNecessary (269-281) blocks on the semaphore, and the init block (150-163) starts the ForegroundService when FCM is unavailable.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "Why does the app demand my passphrase again after I've had it in the background for a while, and where is that delay configured?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/service/KeyCachingService.java"
+      ],
+      "why": "KeyCachingService.startTimeoutIfAppropriate (lines 225-265) is the whole mechanism: only if !appVisible && secretSet && (passLockActive || screenLockActive) does it set an AlarmManager.ELAPSED_REALTIME alarm for PASSPHRASE_EXPIRED_EVENT, using passphraseTimeout in minutes or screenLockTimeout in seconds (lines 248-262), with the 'immediate screen lock' zero-timeout coerced to 60s at 236-240. Firing that intent routes to handleClearKey (186-199), which nulls the static masterSecret; isLocked (85-93) is what callers then observe. onAppForegrounded (107-111) cancels the alarm.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "How do I add a value the server can toggle, and why doesn't changing it take effect until the app restarts?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/util/RemoteConfig.kt"
+      ],
+      "why": "RemoteConfig.kt's object-level KDoc (lines 44-51) spells out the recipe: add a `val` at the bottom of the file using a delegate like remoteBoolean/remoteValue. The Config<T> data class (lines 390-442) documents exactly why restarts matter \u2014 `hotSwappable` (396-403) notes flags are otherwise only updated once at app start, plus `sticky` (405-408) and `active` (410-413). init() (94-108) promotes pendingConfig to currentConfig, and refreshIfNecessary()/FETCH_INTERVAL (57, 110-120) governs the 2-hour fetch.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "I want to run some initialization at launch but not delay the first screen from drawing \u2014 what's the right hook?",
+      "gold_files": [
+        "app/src/main/java/org/thoughtcrime/securesms/util/AppStartup.java",
+        "app/src/main/java/org/thoughtcrime/securesms/ApplicationContext.java"
+      ],
+      "why": "AppStartup exposes the three tiers \u2014 addBlocking (lines 58-65), addNonBlocking (67-75), and addPostRender (77-88), which defers until critical UI rendering finishes. onCriticalRenderEventStart/End (lines 90-135) drive that, with FAILSAFE_RENDER_TIME = 2500ms and UI_WAIT_TIME = 500ms (lines 22-26) as the escape hatches. ApplicationContext.onCreate (lines 156-251) is the concrete call site showing which work is registered in each tier and ending with .execute().",
+      "difficulty": "easy",
+      "vocabulary_overlap": "low"
+    }
+  ]
+}

@@ -13,12 +13,13 @@ Contributor-facing docs. For the user-facing pitch and install, see the
 ├── requirements.txt      # indexer deps (NOT needed on dev machines)
 ├── README.md             # this file
 ├── adapters/
-│   ├── _base.py          # Symbol, ExtractResult, shared helpers
+│   ├── _base.py          # Symbol, ExtractResult, doc-comment extraction
 │   ├── __init__.py       # adapter registry, get_adapter(filepath)
 │   ├── python.py         # .py
 │   ├── jvm.py            # .java, .kt, .kts  (shared adapter)
 │   ├── swift.py          # .swift
-│   └── javascript.py     # .js, .mjs, .cjs, .jsx  (JSX included)
+│   ├── javascript.py     # .js, .mjs, .cjs, .jsx  (JSX included)
+│   └── typescript.py     # .ts, .tsx, .mts, .cts (reuses the JS walk)
 └── index/
     ├── symbols.json      # built by CI; committed to the repo
     └── meta.json         # file hashes for incremental rebuilds
@@ -29,19 +30,39 @@ Contributor-facing docs. For the user-facing pitch and install, see the
 The router combines a BM25 baseline with structural and heuristic priors:
 
 ```
-tokens = camel_snake_split(query) − code_stopwords + fuzzy(close_matches)
+tokens = camel_snake_split(query) − code_stopwords − corpus_filler + fuzzy(close_matches)
 
 score(file, query) =
-    BM25(tokens, symbols ∪ refs ∪ path_tokens)        # lexical
-  + η · BM25(tokens, docstrings ∪ markdown_paragraphs) # prose channel
-  + α · filename_match(tokens, basename(file))
-  + β · path_affinity(tokens, dirname(file))
-  + γ · recency(mtime(file))                          # exponential decay
-  + ε · symbol_popularity(file)                       # incoming imports
+  [ BM25(tokens, symbols ∪ refs ∪ path_tokens)          # lexical
+  + η · BM25(tokens, doc_comments ∪ markdown_paragraphs) # prose channel
+  + α · Σ idf_weight(t) for t in filename_match(tokens, basename(file))
+  + β · Σ idf_weight(t) for t in path_affinity(tokens, dirname(file))
+  + γ · recency(mtime(file))                            # exponential decay
+  + ε · symbol_popularity(file)                         # incoming imports
   + ζ · definition_bonus(tokens, defs_in_file)
-  + δ₁ · graph_propagation_1hop(file, top_seeds)
-  + δ₂ · graph_propagation_2hop(file, top_seeds)      # decayed
+  + impl_pattern_boost(file)
+  ] · (test_penalty if file is a test and the query isn't about tests)
+  + min( graph_prop(file), own_lexical_score + floor )  # capped, see below
 ```
+
+**Corpus filler removal.** Query tokens whose IDF falls below
+`MIN_QUERY_TOKEN_IDF` are dropped. A natural-language question carries words
+that are technically in the vocabulary but carry no discrimination — `netty` in
+netty has an IDF of 0.01. BM25 already discounted them; the structural signals
+did not.
+
+**IDF-weighted structural matches.** `filename_match` and `path_affinity` used
+to count 1.0 per matching token regardless of the token. A question mentioning
+`read` and `socket` therefore scored the same filename hit as one mentioning
+`idempotency` and `backoff`. Both are now weighted by token IDF, normalised
+against `IDF_REFERENCE` so `ALPHA` / `BETA` keep their existing meaning.
+
+**Test/benchmark demotion.** Tests restate a concept's vocabulary far more
+densely than the implementation does, which is exactly what BM25 rewards — on
+netty, the top three results for a pipeline question were two testsuite files
+and a microbenchmark, and the implementation was absent. Test-path files are
+multiplied by `TEST_PATH_PENALTY` unless the question is explicitly about
+tests, and surface instead in the paired-results section.
 
 Hub suppression: files imported by more than `HUB_FRACTION` of the corpus
 do not propagate scores to their neighbours (utility hubs like `utils.py`
@@ -68,6 +89,17 @@ Graph-propagation credit is *restricted* to the caller set in this mode,
 so unrelated files that happen to match common tokens like `get` cannot
 accumulate inflated graph_prop and bury the actual target.
 
+**Capped graph propagation.** The filename gate below was meant to bound
+`graph_prop`, but a natural-language question contains many words, so any
+well-connected file with two of them in its basename cleared it and received
+*raw* credit. Measured on netty, `SocketReadPendingTest.java` accumulated a
+`graph_prop` of 333 against a lexical score of 22 — propagation was 94% of the
+winning score and the file that answered the question ranked 1,716th.
+Propagation is evidence that a *neighbour* matched, which is weaker than
+matching yourself, so it is now always log-compressed and then capped at
+`GRAPH_PROP_CAP_RATIO ×` the file's own query-derived score plus a small floor.
+It can promote a plausible file; it can no longer invent one.
+
 **Lexical-only graph propagation.** Recency and popularity are still
 summed into the final ranking but are not allowed to *seed* the import
 graph. In an actively-modified repo nearly every file has high recency,
@@ -88,7 +120,7 @@ in 300 files at once) from collectively dominating the graph.
 | `ZETA` | 0.5 | Bonus per matched definition name |
 | `DELTA_1HOP` | 1.0 | 1-hop import-graph propagation |
 | `DELTA_2HOP` | 0.3 | 2-hop propagation (decayed) |
-| `ETA` | 1.2 | Prose channel weight |
+| `ETA` | 2.4 | Prose channel weight (doc comments + markdown) — the highest-value signal in the ranker; see the measurement note in `router.py` |
 | `BM25_K1` | 1.5 | BM25 saturation parameter |
 | `BM25_B` | 0.75 | BM25 length-normalization parameter |
 | `RECENCY_HALFLIFE_DAYS` | 30 | Files this old contribute half their recency score |
@@ -111,7 +143,23 @@ in 300 files at once) from collectively dominating the graph.
 | `WIDE_SPAN_FRACTION` | 0.5 | A matched span covering more than this fraction of the file is a container (class / extension), not a target — dropped when a tighter span also matched |
 | `TOP_K` | 5 | How many ranked results to emit |
 
-Open a PR with rationale + measurements if you change any of these.
+| `TEST_PATH_PENALTY` | 0.35 | Multiplier on a test/benchmark/fixture file when the query isn't about tests |
+| `GRAPH_PROP_CAP_RATIO` | 1.0 | graph_prop ceiling as a multiple of the file's own lexical score |
+| `GRAPH_PROP_CAP_FLOOR` | 1.0 | Additive floor so a zero-lexical neighbour can still surface |
+| `IDF_REFERENCE` | 3.0 | IDF normaliser for structural (filename / path) match weighting |
+| `IDF_WEIGHT_CAP` | 2.0 | Max weight a single very-rare token can carry structurally |
+| `MIN_QUERY_TOKEN_IDF` | 0.35 | Query tokens below this IDF are corpus-wide filler and get dropped |
+
+Every constant here is overridable at runtime as `TOKENHACK_<NAME>`, so you can
+ablate it against the gold set:
+
+```bash
+TOKENHACK_ETA=0 python3 tests/eval.py
+```
+
+**Open a PR with rationale + measurements if you change any of these.** Since
+`tests/` exists there is no excuse for "felt better" — run `python3
+tests/eval.py` before and after and put both numbers in the PR body.
 
 ## Adding a new language adapter
 

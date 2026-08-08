@@ -1,0 +1,119 @@
+{
+  "repo": "DDG",
+  "note": "Ground truth built by agents reading the repo only; TokenHack's router and index were off-limits during construction.",
+  "queries": [
+    {
+      "question": "What decides whether the shield icon next to the URL is shown plain, with a dot, or as an alert?",
+      "gold_files": [
+        "DuckDuckGo/PrivacyIconLogic.swift"
+      ],
+      "why": "PrivacyIconLogic.privacyIcon(for: PrivacyInfo) at lines 34-48 returns .daxLogo for DDG search, .alert when malicousSiteThreatKind != .none, and .shieldWithDot when !https || isUserUnprotected(domain:) || invalid server trust; the simpler privacyIcon(for: URL?) overload is at lines 26-32.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "Where does the app handle moving between foreground and background, and what happens if an unexpected lifecycle event arrives?",
+      "gold_files": [
+        "DuckDuckGo/AppLifecycle/AppStateTransitions.swift",
+        "DuckDuckGo/AppLifecycle/AppStateMachine.swift"
+      ],
+      "why": "AppStateTransitions.swift lines 23-113 defines apply(event:) for Initializing/Launching/Foreground/Background/Terminating, and lines 122-132 define handleUnexpectedEvent which logs and fires the .appDidTransitionToUnexpectedState daily pixel. AppStateMachine.swift lines 22-69 declares AppEvent/AppAction/AppState and the AppStateMachine that drives currentState = currentState.apply(event:).",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "If a user turns on clearing tabs and data after inactivity, where is the delay actually checked?",
+      "gold_files": [
+        "DuckDuckGo/AutoClear.swift"
+      ],
+      "why": "AutoClear.shouldClearData(elapsedTime:) at lines 73-92 switches on settings.timing (.termination, .delay5min/15/30/60) comparing elapsedTime against 5/15/30/60 minutes; clearDataIfEnabledAndTimeExpired at lines 94-104 compares against the timestamp set by startClearingTimer (lines 69-71). Note the UI-test override at line 76-78 that shortens it to 5 seconds.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "Why do the top and bottom UI strips slide out of the way when you scroll a web page, and what makes them come back?",
+      "gold_files": [
+        "DuckDuckGo/BarsAnimator.swift",
+        "DuckDuckGo/BrowserChromeManager.swift"
+      ],
+      "why": "BarsAnimator holds the revealed/transitioning/hidden state machine: revealedAndScrolling (lines 70-87), transitioningAndScrolling (89-122, including the iOS 18 PDF debounce workaround), hiddenAndScrolling with the bottom-bounce reveal gesture (124-145), calculateTransitionRatio (147-160) and didFinishScrolling's >0.5 snap decision (162-195). BrowserChromeManager is the UIScrollViewDelegate that feeds it, with canHideBars(for:) at lines 145-148 refusing to hide when the content is shorter than the viewport.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How long can someone keep viewing their saved logins before we make them prove who they are again?",
+      "gold_files": [
+        "DuckDuckGo/UserSession.swift",
+        "DuckDuckGo/AutofillLoginSession.swift"
+      ],
+      "why": "UserSession.swift lines 22-49: Constants.defaultTimeout = 15 seconds, and isSessionValid (lines 35-40) requires timeInterval > 0 (explicitly to stop users winding the device clock back) and < sessionTimeout. AutofillLoginSession.swift lines 23-40 subclasses it and gates lastAccessedAccount on isSessionValid; callers such as AutofillLoginListViewModel and AutofillLoginPromptViewController read isSessionValid to skip re-auth.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "When browsing data gets wiped, which sites keep their cookies and local storage, and where is that exception list kept?",
+      "gold_files": [
+        "Core/Fireproofing.swift",
+        "Core/WebCacheManager.swift"
+      ],
+      "why": "Fireproofing.swift lines 37-84: UserDefaultsFireproofing stores allowedDomains in a UserDefaults wrapper and always appends the DDG host plus SubscriptionCookieManager.cookieDomain (lines 57-62); isAllowed(cookieDomain:)/isAllowed(fireproofDomain:) are the membership checks. WebCacheManager.swift lines 169-210 does the actual wipe: clearDataForSafelyRemovableDataTypes, then clearFireproofableDataForNonFireproofDomains and clearCookiesForNonFireproofedDomains filter records/cookies through fireproofing.isAllowed; the fireproofable set (cookies, localStorage, IndexedDB) is defined at lines 66-78.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "When you start typing in the search field, how are your saved bookmarks ordered so the most likely one shows first?",
+      "gold_files": [
+        "Core/BookmarksCachingSearch.swift"
+      ],
+      "why": "The private score(_:_:_:) at lines 207-254 builds the ranking: favourites start at 0 and non-favourites at -1, +200 for a title matching the whole query from its leading boundary, +100 for a mid-string word match, +10 for matching every whitespace token, +300 when the domain starts with the first token, +50 when the title does. score(query:input:) (189-205) drops anything <= 0 and search(query:) (256-268) sorts descending by score.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "If someone clicks through the big red phishing warning and loads the site anyway, how do we remember not to block them again?",
+      "gold_files": [
+        "DuckDuckGo/SpecialErrorPage/SpecialErrorPageNavigationHandler+MaliciousSite.swift"
+      ],
+      "why": "MaliciousSiteProtectionNavigationHandler keeps maliciousURLExemptions: [URL: ThreatKind] and bypassedMaliciousSiteThreatKind (lines 64-66). visitSite(url:errorData:) at lines 146-155 records the exemption; handleMaliciousExemptions (167-173) re-reads it on each navigation and shouldBypassMaliciousSiteProtection (175-178) short-circuits detection when a bypass is active or the URL is DDG-owned. purgeMaliciousDectionTasksIfNeeded (180-191) clears pending detection tasks on a new main-frame navigation.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "A tab's web view gets thrown away under memory pressure \u2014 how do we bring back its scroll position and half-filled forms when the user returns to it?",
+      "gold_files": [
+        "DuckDuckGo/TabInteractionStateDiskSource.swift",
+        "DuckDuckGo/TabViewController.swift"
+      ],
+      "why": "TabInteractionStateDiskSource.swift lines 35-142: state blobs are written per-tab into Caches/<bundleId>/webview-interaction/<tab.uid> with .atomic + .completeFileProtectionUntilFirstUserAuthentication (saveState, 69-93); popLastStateForTab (95-108) reads and immediately deletes; removeAll(excluding:) (116-128) garbage-collects files for closed tabs. TabViewController.swift calls saveState on viewWillDisappear (line 482) and onApplicationWillResignActive (line 572), and attachWebView feeds the blob into restoreInteractionStateToWebView (line 632, implementation around line 3214).",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "If a usage-stat request fails because the phone was offline, do we ever try again, and how long do we hold onto it?",
+      "gold_files": [
+        "Core/PersistentPixel.swift"
+      ],
+      "why": "PersistentPixel.fire(...) at lines 91-125 stamps PixelParameters.originalPixelTimestamp and, on failure, appends a PersistentPixelMetadata to storage. sendQueuedPixels (198-234) rate-limits reprocessing to Constants.minimumProcessingInterval (1 hour in release, 1 minute in DEBUG, lines 47-51). The private fire(queuedPixels:) at lines 239-289 drops anything whose stored timestamp is older than date28DaysAgo (line 245, checked at 248-254), tags retries with PixelParameters.retriedPixel = \"1\" (line 266), and only removes IDs that resend successfully.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How can we tell that someone deleted the app and installed it again rather than being a genuinely first-time user?",
+      "gold_files": [
+        "Core/ReturnUserMeasurement.swift"
+      ],
+      "why": "KeychainReturnUserMeasurement at lines 35-123: isReturningUser (47-49) is just hasAnyKeychainItems(), which queries kSecClassGenericPassword and kSecClassKey with kSecMatchLimitOne (99-121) \u2014 keychain entries survive app deletion, so their presence means a prior install. writeSecureATB (61-90) stores the ATB under \"returning-user-atb\" with kSecAttrAccessibleWhenUnlocked and synchronizable:false. DefaultVariantManager.selectVariant consumes this to force the \"ru\" variant.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "The server rejects a sync upload with a 413 or a 429 \u2014 where do we turn that into the message the user sees, and how do we stop nagging them repeatedly?",
+      "gold_files": [
+        "Core/SyncErrorHandler.swift"
+      ],
+      "why": "handleSyncError(_:modelType:) at lines 189-227 maps status codes to error types: 409 -> count limit exceeded, 413 -> request size limit exceeded, 400 -> bad request, 401 -> invalidLoginCredentials, 418/429 -> tooManyRequests, each per bookmarks/credentials/settings. syncIsPaused (229-261) sets the isSyncBookmarksPaused / isSyncCredentialsPaused / isSyncPaused flags and fires daily pixels. showSyncPausedAlertIfNeeded (262-289) guards on didShow* flags so each alert appears once, and for the non-actionable tooManyRequests case defers to shouldShowAlertForNonActionableError (144-163), which needs 10 consecutive errors or no successful sync in 12h, plus 24h since the last notification.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "high"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 """Swift adapter for TokenHack."""
-from ._base import Symbol, ExtractResult, get_text, declaration_line
+from ._base import (Symbol, ExtractResult, get_text, declaration_line,
+                    collect_doc_comments)
 
 LANGUAGE_NAME = "swift"
 FILE_EXTENSIONS = [".swift"]
@@ -74,8 +75,12 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
         for child in reversed(node.children):
             stack.append(child)
 
+    prose, summary = collect_doc_comments(root, source)
+
     return ExtractResult(
         symbols=symbols,
         imports=list(dict.fromkeys(imports)),
         references=sorted(r for r in references if r),
+        docstring_summary=summary,
+        prose_paragraphs=prose,
     )

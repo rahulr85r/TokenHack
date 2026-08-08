@@ -1,0 +1,121 @@
+{
+  "repo": "spring-framework",
+  "note": "Ground truth built by agents reading the repo only; TokenHack's router and index were off-limits during construction.",
+  "queries": [
+    {
+      "question": "What decides whether a bean ends up behind a JDK dynamic proxy or a CGLIB subclass proxy?",
+      "gold_files": [
+        "spring-aop/src/main/java/org/springframework/aop/framework/DefaultAopProxyFactory.java"
+      ],
+      "why": "DefaultAopProxyFactory.createAopProxy (lines 59-76): if optimize, proxyTargetClass, or no user-supplied interfaces, it goes CGLIB (ObjenesisCglibAopProxy) unless the target class is itself an interface / an existing Proxy class / a lambda class, in which case JdkDynamicAopProxy. Otherwise JdkDynamicAopProxy. Class javadoc at lines 24-37 states the same three conditions.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "Two of our services are wired into each other and the app still boots \u2014 how does the container manage that without looping forever?",
+      "gold_files": [
+        "spring-beans/src/main/java/org/springframework/beans/factory/support/DefaultSingletonBeanRegistry.java",
+        "spring-beans/src/main/java/org/springframework/beans/factory/support/AbstractAutowireCapableBeanFactory.java"
+      ],
+      "why": "DefaultSingletonBeanRegistry holds the three maps singletonObjects / earlySingletonObjects / singletonFactories (lines 89-95) and getSingleton(beanName, allowEarlyReference) at lines 208-244 walks them, calling the ObjectFactory to publish a half-built instance into earlySingletonObjects when the bean isSingletonCurrentlyInCreation. AbstractAutowireCapableBeanFactory.doCreateBean lines 587-597 is what registers that factory (earlySingletonExposure + addSingletonFactory(beanName, () -> getEarlyBeanReference(...))), and lines 612-634 raise BeanCurrentlyInCreationException when the raw early reference was later wrapped by a proxy.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "A checked exception escapes our service method but the database writes still get committed \u2014 where is that decided, and how do I change it for one exception type?",
+      "gold_files": [
+        "spring-tx/src/main/java/org/springframework/transaction/interceptor/DefaultTransactionAttribute.java",
+        "spring-tx/src/main/java/org/springframework/transaction/interceptor/RuleBasedTransactionAttribute.java",
+        "spring-tx/src/main/java/org/springframework/transaction/interceptor/RollbackRuleAttribute.java"
+      ],
+      "why": "DefaultTransactionAttribute.rollbackOn lines 179-182 is literally `return (ex instanceof RuntimeException || ex instanceof Error)` \u2014 checked exceptions commit; the javadoc at 166-177 explains the business-exception rationale. RuleBasedTransactionAttribute.rollbackOn lines 122-143 overrides it: it scores every configured rule with RollbackRuleAttribute.getDepth, picks the shallowest (closest in the inheritance hierarchy) winner, falls back to super.rollbackOn if none match, and returns false when the winner is a NoRollbackRuleAttribute. RollbackRuleAttribute.getDepth lines 165-185 is the recursive superclass walk that produces the depth.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How long do we wait between attempts after something fails, and is there any randomness so all the callers don't hammer the server at the same instant?",
+      "gold_files": [
+        "spring-core/src/main/java/org/springframework/util/backoff/ExponentialBackOff.java",
+        "spring-core/src/main/java/org/springframework/core/retry/RetryPolicy.java"
+      ],
+      "why": "ExponentialBackOff.ExponentialBackOffExecution.computeNextInterval (lines 294-308) multiplies currentInterval by the multiplier, clamps at maxInterval, then hands off to applyJitter (lines 310-320) which scales the configured jitter by interval/initialInterval and picks a uniform random value via Math.random() between min and max \u2014 that is the randomness. nextBackOff (283-292) stops on maxElapsedTime/maxAttempts. RetryPolicy.Builder (lines 148-271) is the user-facing side: delay, jitter, multiplier, maxDelay, timeout fields that get assembled into that BackOff.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "When a client disconnects in the middle of a streaming response, what stops the app from continuing to write into a dead output stream?",
+      "gold_files": [
+        "spring-web/src/main/java/org/springframework/web/context/request/async/StandardServletAsyncWebRequest.java"
+      ],
+      "why": "The LifecycleHttpServletResponse wrapper guards every write path through obtainLockOrRaiseException (lines 326-335): tryObtainLock returns -1 once state is COMPLETED or ERROR and an AsyncRequestNotUsableException is thrown instead of touching the response. handleIOException (337-341) flips state to ERROR on the first IOException, and onError (line 188) is the container callback that trips the same state. LifecycleServletOutputStream (from line 357) and LifecyclePrintWriter (from line 438) are the wrappers described as preventing use after onError / after async completion.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Why doesn't the whole application get rebuilt for every test class in our suite, and what makes two test classes share the same one?",
+      "gold_files": [
+        "spring-test/src/main/java/org/springframework/test/context/cache/DefaultContextCache.java",
+        "spring-test/src/main/java/org/springframework/test/context/MergedContextConfiguration.java"
+      ],
+      "why": "DefaultContextCache keys a LinkedHashMap by MergedContextConfiguration; get() at lines 168-181 counts hit/miss and reuses the stored ApplicationContext, put() at 207-218 loads only on miss, and evictLruContextIfNecessary at 224-233 drops the head (least-recently-used) entry once contextMap.size() >= maxSize. What counts as 'the same' config is MergedContextConfiguration.equals/hashCode at lines 485-548 \u2014 locations, classes, initializers, activeProfiles, property source descriptors/properties, contextCustomizers, parent, and the ContextLoader class name; anything differing there forces a second context.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "If two controller methods both match an incoming URL, how is the winner chosen and when does it blow up as ambiguous?",
+      "gold_files": [
+        "spring-webmvc/src/main/java/org/springframework/web/servlet/handler/AbstractHandlerMethodMapping.java"
+      ],
+      "why": "lookupHandlerMethod at lines 393-436: it collects direct-path matches first, falls back to scanning all registrations, sorts with MatchComparator wrapping getMappingComparator(request), takes matches.get(0) as bestMatch, and if comparator.compare(bestMatch, secondBestMatch) == 0 throws IllegalStateException(\"Ambiguous handler methods mapped for ...\") \u2014 except for CORS preflight requests, which return PREFLIGHT_AMBIGUOUS_MATCH instead (lines 411-417). The registration-time duplicate check with the same 'Ambiguous mapping' wording is at line 644.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "At what point does a SpEL expression stop being interpreted and get turned into bytecode?",
+      "gold_files": [
+        "spring-expression/src/main/java/org/springframework/expression/spel/standard/SpelExpression.java"
+      ],
+      "why": "checkCompile at lines 469-485 is called after every getValue/setValue: it increments interpretedCount, and depending on SpelCompilerMode compiles after a single interpretation (IMMEDIATE, > 1) or after INTERPRETED_COUNT_THRESHOLD evaluations (MIXED); OFF never compiles. compileExpression at 493-509 short-circuits if already compiled and gives up permanently once failedAttempts exceeds FAILED_ATTEMPTS_THRESHOLD (javadoc at 487-492 notes the 100-failure cutoff). The interpretedCount.set(0) calls scattered through the getValue overloads are the reverts on failure.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "What exactly becomes the cache key when a @Cacheable method takes zero, one, or several arguments?",
+      "gold_files": [
+        "spring-context/src/main/java/org/springframework/cache/interceptor/SimpleKeyGenerator.java",
+        "spring-context/src/main/java/org/springframework/cache/interceptor/SimpleKey.java"
+      ],
+      "why": "SimpleKeyGenerator.generateKey lines 54-65: no params -> SimpleKey.EMPTY; exactly one non-null, non-array param -> that param itself is the key; otherwise a new SimpleKey wrapping all params. generate (45-49) additionally strips the trailing Continuation argument for Kotlin suspending functions. SimpleKey (lines 38-83) clones the elements, pre-computes hashCode in the constructor, and uses Arrays.deepEquals for equality.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "A background fire-and-forget method blew up and nobody noticed \u2014 where does that exception actually go?",
+      "gold_files": [
+        "spring-aop/src/main/java/org/springframework/aop/interceptor/AsyncExecutionAspectSupport.java"
+      ],
+      "why": "handleError at lines 307-321: if the method's return type is a Future the original exception is rethrown to the caller via ReflectionUtils.rethrowException; otherwise it is handed to the AsyncUncaughtExceptionHandler (default SimpleAsyncUncaughtExceptionHandler, wired at lines 97 and 123), and a failure inside that handler is only logged at warn. doSubmit at 278-293 shows why: a void/Unit return submits and returns null, so there is no handle to carry the exception back.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "How does the framework choose between JSON and XML for a response body, and where does the 406 come from?",
+      "gold_files": [
+        "spring-webmvc/src/main/java/org/springframework/web/servlet/mvc/method/annotation/AbstractMessageConverterMethodProcessor.java"
+      ],
+      "why": "writeWithMessageConverters lines 205-345: a concrete preset Content-Type wins outright (243-251); otherwise getAcceptableMediaTypes(request) is intersected with getProducibleMediaTypes(...) by determineCompatibleMediaTypes (269-280, with a ProblemDetail/RFC-9457 fallback), the result is ranked by MimeTypeUtils.sortBySpecificity (292) and the first concrete type wins (294-303, with */* mapping to application/octet-stream). An empty compatible list with a non-null body throws HttpMediaTypeNotAcceptableException (287) \u2014 that is the 406. Converter selection then loops canWrite over generic/smart/base converters at 316-345.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "How is the next fire time computed from a cron string like '0 0 3 * * MON-FRI'?",
+      "gold_files": [
+        "spring-context/src/main/java/org/springframework/scheduling/support/CronExpression.java",
+        "spring-context/src/main/java/org/springframework/scheduling/support/CronTrigger.java"
+      ],
+      "why": "CronExpression.next (lines 240-242) advances the seed by one nanosecond then calls nextOrSame (245-254), which loops up to MAX_ATTEMPTS = 366 (line 48) applying nextOrSameInternal (256-264) \u2014 each CronField rolls the temporal forward until a fixpoint, returning null if no date matches within a year. CronTrigger.nextExecution (lines 114-121) is the scheduling entry point: it takes determineLatestTimestamp (123-134, which prefers lastCompletion but falls back to lastScheduledExecution to avoid same-second re-fires), converts to the configured ZoneId, and delegates to expression.next.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    }
+  ]
+}

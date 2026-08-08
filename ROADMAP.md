@@ -19,12 +19,12 @@ Anything that satisfies these is fair game.
 
 ---
 
-## Status snapshot (May 2026)
+## Status snapshot (August 2026)
 
-- **4 language adapters**: Java/Kotlin/Scala (JVM), Python, JavaScript, Swift
-- **Indexer**: 0% error rate across ~22k files tested (DDG, Spring, netty, Signal-Android, OwnCloud, blinkit)
-- **Router scoring**: 6 named fixes accumulated, most recent being the impl-pattern boost + filename-gated graph_prop ([#2](https://github.com/rahulr85r/TokenHack/pull/2))
-- **Validation**: Ad-hoc — no formal regression test suite yet (see Near-term item below)
+- **5 language adapters**: Python, TypeScript/TSX, JavaScript/JSX, JVM (Java + Kotlin), Swift
+- **Prose channel**: doc comments (javadoc / KDoc / Swift doc / JSDoc / docstrings) extracted across all adapters
+- **Indexer**: 0 errors and 0 skips across ~21k files (Spring 9,487, Signal 5,534, netty 3,512, DDG 1,211, ownCloud 996, blinkit 112)
+- **Validation**: `tests/eval.py` + a 72-query gold set across 6 repos, built blind. Every scoring constant is env-overridable so changes can be ablated against it.
 
 ---
 
@@ -70,7 +70,11 @@ Symbol-span staging shipped (the router now emits `↳ read L<start>-<end>` hint
 
 ### Testing infrastructure
 
-- **Ranker regression test suite.** This is the highest-leverage item under "Larger" in the README, and it's actually been prototyped — see the comparison harness used to validate [#2](https://github.com/rahulr85r/TokenHack/pull/2). Formalize it: a `tests/regression/` directory with one YAML file per repo, each containing a gold-set of queries and expected files. CI runs the router against fixtures and fails on rank regressions. Solves the "no formal tests" gap that the CONTRIBUTING guide currently apologizes for.
+Shipped — see `tests/`. What's left:
+
+- **Grow the gold set.** 72 queries across 6 repos is enough to find bugs and nowhere near enough to trust a delta of a few points. Every new question is directly useful, and questions on repos we don't already cover are worth the most.
+- **Held-out split.** Every constant is currently fitted on all 72 queries, so every number is in-sample. Splitting into tune/holdout would let us report a generalisation estimate instead of a best case.
+- **Per-query cost in the metric.** `hit@5` says nothing about what a miss cost. A combined score — tokens spent against files found — would let the ranker be tuned for the thing the project actually claims to optimise.
 
 ---
 

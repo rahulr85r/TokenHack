@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Repositories the gold sets are written against, pinned to the commit they",
+    "were authored at. `python3 tests/fetch_repos.py` shallow-clones each one at",
+    "its pin and builds an index, so anyone can reproduce the eval numbers rather",
+    "than take them on trust.",
+    "",
+    "DDG and blinkit are evaluated locally but not listed here: the DuckDuckGo iOS",
+    "checkout used was a source snapshot rather than a clone, and blinkit is a",
+    "private app repo. Their gold sets ship anyway — point --repos-dir at your own",
+    "copies if you have them, and eval.py skips what it can't find."
+  ],
+  "repos": [
+    {
+      "name": "netty",
+      "url": "https://github.com/netty/netty.git",
+      "commit": "b022b47",
+      "language": "Java",
+      "files_indexed": 3512
+    },
+    {
+      "name": "spring-framework",
+      "url": "https://github.com/spring-projects/spring-framework.git",
+      "commit": "25e8395",
+      "language": "Java",
+      "files_indexed": 9487
+    },
+    {
+      "name": "Signal-Android",
+      "url": "https://github.com/signalapp/Signal-Android.git",
+      "commit": "a05ce88",
+      "language": "Java/Kotlin",
+      "files_indexed": 5534
+    }
+  ]
+}

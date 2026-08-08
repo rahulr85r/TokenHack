@@ -37,7 +37,9 @@ The first time you set it up — and on every push afterwards — an *indexer* w
 
 The mental model is the index at the back of a textbook. It's not a search engine. It doesn't understand what your code *does*. It's just a list of what's where, written down once so the assistant doesn't have to flip through the whole book every time it wants to find something.
 
-To extract that list, the indexer uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) — a parser that actually understands code structure rather than just pattern-matching text. Out of the box, it handles Python, Java, Kotlin, JavaScript/JSX, and Swift. Files in unsupported languages are skipped without breaking the build; the rest of the index still gets written.
+To extract that list, the indexer uses [tree-sitter](https://tree-sitter.github.io/tree-sitter/) — a parser that actually understands code structure rather than just pattern-matching text. Out of the box, it handles **Python, TypeScript/TSX, JavaScript/JSX, Java, Kotlin, and Swift**. Files in unsupported languages are skipped without breaking the build; the rest of the index still gets written, and the router warns you in its header when a large share of the repo had no adapter, so partial coverage never silently masquerades as an answer.
+
+It also captures **doc comments** — javadoc, KDoc, Swift doc comments, JSDoc, Python docstrings — into a separate prose channel. That turns out to matter more than anything else in the ranker, because docs are written in the words a human question uses while identifiers are written in the words a compiler needs.
 
 ---
 
@@ -304,6 +306,24 @@ The three-gate nudge ruleset (next section) is what keeps the skill silent in th
 
 ---
 
+## Does it actually retrieve the right file?
+
+For most of this project's life the honest answer was "I don't know." Now there's a number.
+
+`tests/` holds a **72-question gold set across 6 open-source repos** — spring-framework, netty, Signal-Android, DuckDuckGo iOS, ownCloud Android and a small full-stack JS app — each question paired with the file that actually answers it. It was built blind: the questions and answers were produced by agents that explored each repo with only glob/grep/read and were forbidden from running the router or reading its index, so the set isn't shaped around what TokenHack happens to be good at. 45 of the 72 are deliberately *vocabulary-mismatch* questions, where the question's words don't appear in the answer's name — the case lexical retrieval is expected to lose.
+
+```bash
+pip install -r .claude/skills/tokenhack/requirements.txt
+python3 tests/fetch_repos.py     # clone + index the pinned public repos
+python3 tests/eval.py
+```
+
+The scores are not flattering, and they're the point. See [`tests/README.md`](tests/README.md) for what each metric means and how to add questions.
+
+**If you change a scoring constant, put the before/after numbers in the PR.** Every constant is overridable as `TOKENHACK_<NAME>` precisely so you can.
+
+---
+
 ## The three-gate nudge ruleset
 
 After `/tokenhack` is invoked once in a session, Claude is instructed to suggest re-invoking it only when **all three** of the following gates pass:
@@ -349,8 +369,7 @@ The full roadmap — near-term, medium-term, and out-of-scope items — lives in
 
 **Sharply scoped first-PR opportunities** (each is a few hours of work and has a clear, testable surface):
 
-- **TypeScript adapter.** Extend `adapters/javascript.py` to handle `.ts` and `.tsx`. The grammars share ~95% of node types. *(Highest-impact contribution — the majority of modern React / Vue codebases.)*
-- **Vue.js adapter.** Add `adapters/vue.py` using `tree-sitter-vue` to handle `.vue` SFCs. Reuse the JS/TS adapter internally for `<script>` blocks.
+- **Vue.js adapter.** Add `adapters/vue.py` using `tree-sitter-vue` to handle `.vue` SFCs. Reuse the JS/TS adapter internally for `<script>` blocks — `adapters/typescript.py` shows the pattern (it imports the walk from `javascript.py` and adds node types).
 - **Ruby adapter.** `tree-sitter-ruby`. Straightforward.
 - **C# adapter.** `tree-sitter-c-sharp`. Heavy enterprise use.
 - **Rust adapter.** `tree-sitter-rust`. CNCF / infra workloads.

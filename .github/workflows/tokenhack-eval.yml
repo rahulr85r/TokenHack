@@ -1,0 +1,67 @@
+name: tokenhack-eval
+
+# Retrieval evaluation against the gold sets in tests/gold/.
+#
+# Not on every push: reproducing the scores means cloning and indexing several
+# large repositories (spring-framework alone is 9,487 indexed files), which is
+# minutes of CI time. Run it on demand, and always when a PR touches the
+# scoring constants or the adapters — a change to those without a before/after
+# recall number is a change nobody can review.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Comma-separated repo names, or blank for all pinned repos"
+        type: string
+        default: ""
+  pull_request:
+    paths:
+      - '.claude/skills/tokenhack/router.py'
+      - '.claude/skills/tokenhack/adapters/**'
+      - 'tests/**'
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout TokenHack
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install indexer dependencies
+        run: pip install -r .claude/skills/tokenhack/requirements.txt
+
+      - name: Clone and index the evaluation repos
+        run: |
+          ARGS=""
+          if [[ -n "${{ inputs.repos }}" ]]; then
+            IFS=',' read -ra NAMES <<< "${{ inputs.repos }}"
+            for n in "${NAMES[@]}"; do ARGS="$ARGS --repo $(echo "$n" | xargs)"; done
+          fi
+          python3 tests/fetch_repos.py --dest "$RUNNER_TEMP/evalrepos" $ARGS
+
+      - name: Evaluate
+        run: |
+          python3 tests/eval.py --repos-dir "$RUNNER_TEMP/evalrepos" --markdown \
+            | tee "$RUNNER_TEMP/eval.txt"
+
+      - name: Check for regression against the committed baseline
+        run: |
+          python3 tests/eval.py --repos-dir "$RUNNER_TEMP/evalrepos" --check
+
+      - name: Publish results to the job summary
+        if: always()
+        run: |
+          {
+            echo '## TokenHack retrieval evaluation'
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/eval.txt" || echo "(no results)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

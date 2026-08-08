@@ -33,3 +33,6 @@ dist/
 .claude/settings.local.json
 
 # Note: do NOT ignore .claude/skills/tokenhack/index/ — the index is the point.
+
+# Article drafts (not part of the tool)
+medium-*.html

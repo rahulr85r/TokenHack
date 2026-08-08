@@ -1,0 +1,127 @@
+{
+  "repo": "blinkit",
+  "note": "Ground truth built by agents reading the repo only; TokenHack's router and index were off-limits during construction.",
+  "queries": [
+    {
+      "question": "When someone signs in, what tokens do we hand back and how do they end up in the browser?",
+      "gold_files": [
+        "server/controllers/user.controller.js",
+        "server/utils/generatedRefreshToken.js"
+      ],
+      "why": "loginController in server/controllers/user.controller.js lines 106-179: after bcryptjs.compare it calls generatedAccessToken(user._id) and genertedRefreshToken(user._id), stamps last_login_date, then sets both as cookies with { httpOnly: true, secure: true, sameSite: 'None' } (lines 154-160) AND returns them in the JSON body. server/utils/generatedRefreshToken.js lines 4-18 signs the refresh JWT with SECRET_KEY_REFRESH_TOKEN, expiresIn '7d', and persists it onto the user document's refresh_token field.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "When an admin uploads a product image, where does the file physically end up?",
+      "gold_files": [
+        "server/utils/uploadImageClodinary.js",
+        "server/middleware/multer.js",
+        "server/route/upload.router.js"
+      ],
+      "why": "server/middleware/multer.js lines 3-5 uses multer.memoryStorage(), so nothing touches disk. server/utils/uploadImageClodinary.js lines 9-19 takes image.buffer and pipes it through cloudinary.uploader.upload_stream({ folder: 'binkeyit' }) inside a Promise, returning the Cloudinary result. server/route/upload.router.js line 8 wires POST /upload through auth + upload.single('image') to uploadImageController.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "Where do we detect that the browser window is too narrow and switch to the phone layout?",
+      "gold_files": [
+        "client/src/hooks/useMobile.jsx",
+        "client/src/components/Header.jsx"
+      ],
+      "why": "client/src/hooks/useMobile.jsx lines 3-22: a hook defaulting to breakpoint 768 that seeds state from window.innerWidth < breakpoint and re-evaluates on a window 'resize' listener registered/torn down in useEffect. Header.jsx line 16 destructures [isMobile] from it and line 62 uses !(isSearchPage && isMobile) to drop the whole desktop bar, plus a separate lg:hidden search row at line 152.",
+      "difficulty": "easy",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "When the API rejects a call as unauthorized, how does the app recover instead of bouncing the user back to the sign-in screen?",
+      "gold_files": [
+        "client/src/utils/Axios.js",
+        "server/controllers/user.controller.js"
+      ],
+      "why": "client/src/utils/Axios.js lines 27-51: an interceptor checks error.response.status === 401 && !originRequest.retry, sets originRequest.retry = true, pulls 'refreshToken' out of localStorage, calls refreshAccessToken (lines 54-69) which hits SummaryApi.refreshToken with a Bearer header, stores the new 'accesstoken', and replays the original request. Note the second interceptor is mistakenly registered on interceptors.request rather than .response. The server half is refreshToken() in server/controllers/user.controller.js lines 445-496, which verifies against SECRET_KEY_REFRESH_TOKEN and re-issues an access token.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "If a shopper taps Add on something that's already in their basket, what stops a duplicate row being written?",
+      "gold_files": [
+        "server/controllers/cart.controller.js",
+        "client/src/components/AddToCartButton.jsx"
+      ],
+      "why": "addToCartItemController in server/controllers/cart.controller.js lines 17-26 does a findOne({ userId, productId }) and returns HTTP 400 'Item already in cart' before creating anything; only on a miss does it create the CartProductModel with quantity 1 and $push the id onto user.shopping_cart. On the client, AddToCartButton.jsx lines 50-57 runs cartItem.some(item => item.productId._id === data._id) and flips isAvailableCart, so the UI renders the +/- quantity stepper (lines 87-94) instead of the Add button once the item is present.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "What stops someone from removing a top-level section that still has things filed under it?",
+      "gold_files": [
+        "server/controllers/category.controller.js"
+      ],
+      "why": "deleteCategoryController in server/controllers/category.controller.js lines 93-125 runs two countDocuments() probes before deleting \u2014 SubCategoryModel.find({ category: { $in: [_id] } }) and ProductModel.find({ category: { $in: [_id] } }) \u2014 and if either count > 0 it returns HTTP 400 \"Category is already use can't delete\" (lines 109-115). Only when both are zero does CategoryModel.deleteOne run. Note the sibling deleteSubCategoryController has no equivalent guard.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "After a customer pays through Stripe's hosted checkout, how does the order actually get written to our database?",
+      "gold_files": [
+        "server/controllers/order.controller.js",
+        "server/route/order.route.js"
+      ],
+      "why": "server/controllers/order.controller.js: paymentController (lines 57-110) builds line_items and creates the Stripe checkout session with metadata { userId, addressId } and success/cancel URLs. webhookStripe (lines 149-186) handles 'checkout.session.completed', lists line items, calls getOrderProductItems (lines 113-146) which re-fetches each Stripe product to recover product.metadata.productId, then OrderModel.insertMany, and on success empties user.shopping_cart and deletes the CartProductModel rows. server/route/order.route.js line 9 mounts it as an unauthenticated POST /webhook \u2014 and no signature verification against STRIPE_ENPOINT_WEBHOOK_SECRET_KEY is actually performed.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "How does product search actually match text \u2014 is it a regex scan or a real index?",
+      "gold_files": [
+        "server/models/product.model.js",
+        "server/controllers/product.controller.js"
+      ],
+      "why": "server/models/product.model.js lines 56-62 declares productSchema.index({ name: 'text', description: 'text' }, { name: 10, description: 5 }) \u2014 a MongoDB text index (the weights are passed in the options slot, so they land as index name/description rather than true weights). searchProduct in server/controllers/product.controller.js lines 268-311 builds query = { $text: { $search: search } }, then does a Promise.all of a skip/limit/populate find sorted by createdAt and a countDocuments for totalPage. getProductController lines 56-97 uses the identical $text query.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "high"
+    },
+    {
+      "question": "Where do we gate the staff-only screens so a normal shopper can't reach them?",
+      "gold_files": [
+        "client/src/layouts/AdminPermision.jsx",
+        "server/middleware/Admin.js",
+        "client/src/utils/isAdmin.js"
+      ],
+      "why": "client/src/layouts/AdminPermision.jsx lines 5-15 wraps children and renders 'Do not have permission' unless isAdmin(user.role); client/src/utils/isAdmin.js is a one-liner comparing to the literal 'ADMIN'. route/index.jsx lines 80-95 wrap the category, subcategory, upload-product and product dashboard routes in <AdminPermision>. The real enforcement is server/middleware/Admin.js lines 3-26, which re-loads the user by request.userId and returns 400 'Permission denial' when user.role !== 'ADMIN'; product.route.js lines 8/15/18 chain auth + admin on create/update/delete.",
+      "difficulty": "medium",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Typing quickly into the catalog management filter seems to fire a request per character \u2014 is there any throttling?",
+      "gold_files": [
+        "client/src/pages/ProductAdmin.jsx"
+      ],
+      "why": "client/src/pages/ProductAdmin.jsx lines 64-77: an unnamed useEffect keyed on [search] sets a 300ms setTimeout that calls fetchProductData, with clearTimeout in the cleanup \u2014 a hand-rolled debounce with no helper and no 'debounce' identifier anywhere. handleOnChange (lines 58-62) resets page to 1 on each keystroke, and the separate useEffect on [page] (lines 43-45) is what fires for pagination. The internal `let flag = true` guard is dead weight since the closure is recreated per keystroke. Contrast client/src/components/Search.jsx lines 27-31, the storefront search, which navigates on every keystroke with no delay at all.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "Our listing pages have URLs like /Dairy-Bread-6734abc/Milk-6712def \u2014 where is that slug assembled and where is the id pulled back out of it?",
+      "gold_files": [
+        "client/src/pages/ProductListPage.jsx",
+        "client/src/utils/valideURLConvert.js",
+        "client/src/components/CategoryWiseProductDisplay.jsx"
+      ],
+      "why": "client/src/utils/valideURLConvert.js lines 1-4 replaces spaces, commas and ampersands with hyphens. The link is composed in CategoryWiseProductDisplay.jsx line 65 (`/${valideURLConvert(name)}-${id}/${valideURLConvert(subcategory?.name)}-${subcategory?._id}`) and again in ProductListPage.jsx line 82. Decoding happens in ProductListPage.jsx lines 22-26: subCategoryName rejoins all but the last hyphen segment with spaces, while categoryId/subCategoryId are params.category.split('-').slice(-1)[0] \u2014 i.e. the trailing segment. This breaks for any name whose own words got hyphenated in a way that shifts the last segment. route/index.jsx lines 98-106 declares the matching :category/:subCategory nesting.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    },
+    {
+      "question": "A user removed a saved delivery location but the record is still sitting in the database \u2014 is that on purpose?",
+      "gold_files": [
+        "server/controllers/address.controller.js",
+        "client/src/pages/CheckoutPage.jsx"
+      ],
+      "why": "Yes \u2014 it is a soft delete. deleteAddresscontroller in server/controllers/address.controller.js lines 92-114 does AddressModel.updateOne({ _id, userId }, { status: false }) and never deletes; the endpoint is even named 'disable' in SummaryApi.js line 140. The status field defaults to true in server/models/address.model.js lines 26-29. getAddressController (lines 42-61) returns everything regardless of status, so the filtering is purely visual: CheckoutPage.jsx line 95 hides the row with className={!address.status && \"hidden\"} \u2014 meaning the disabled entry is still in the addressList array and selectAddress is an index into that unfiltered array.",
+      "difficulty": "hard",
+      "vocabulary_overlap": "low"
+    }
+  ]
+}
