@@ -112,8 +112,6 @@ GRAPH_FILENAME_GATE = 2.0        # filename-match threshold for ungated graph cr
 GRAPH_PROP_SCALE = 2.0           # log-compression scale applied below the gate
 
 TOP_K = 5
-STAGED_TOKEN_CAP = 10000         # advisory only; path-list output is cheap,
-                                 # so the router emits TOP_K paths regardless.
 FUZZY_MAX_PER_TOKEN = 2
 FUZZY_CUTOFF = 0.85
 
@@ -634,11 +632,6 @@ def check_staleness(index, root: Path):
 # Main scoring + output
 # ----------------------------------------------------------------------
 
-def estimate_tokens(entry):
-    """Rough chars/4 token estimate for token-budget capping."""
-    return max(1, int(entry.get("size_chars", 0) / 4))
-
-
 def rank(query: str, index: dict):
     """Score every file in the index for the given query.
 
@@ -836,6 +829,38 @@ def rank(query: str, index: dict):
 
 MAX_SPANS_PER_FILE = 4   # cap so a broad query can't list every def in a file
 
+# A matched *class* (or Swift `extension`, or a top-level Kotlin object) has an
+# end_line at the end of the class — i.e. essentially the whole file. Staging
+# that span tells Claude "read the entire file", which is exactly the cost
+# span-staging exists to avoid, and it's usually accompanied by tight method
+# spans nested *inside* the range we just asked for.
+#
+# Adapters flatten every symbol to kind="def" (see ROADMAP "Symbol kind
+# granularity"), so the router can't distinguish a class from a method by kind.
+# It can distinguish them by *width*: a span covering more than
+# WIDE_SPAN_FRACTION of the file is a container, not a target.
+#
+# Measured over 12 queries on 6 OSS repos (netty, spring-framework,
+# Signal-Android, DuckDuckGo iOS, OwnCloud, blinkit): staging every matched
+# span read 68% of the whole-file bytes; dropping container spans in favour of
+# the tight ones reads 16%.
+WIDE_SPAN_FRACTION = 0.5
+
+
+def _file_line_extent(entry):
+    """Approximate the file's line count as the furthest line any symbol reaches.
+
+    The index doesn't record a line count, but the last definition in a file
+    almost always ends near EOF, which is accurate enough to tell a
+    whole-file-width span from a method-width one.
+    """
+    extent = 0
+    for sym in entry.get("symbols", []):
+        extent = max(extent,
+                     int(sym.get("line", 0) or 0),
+                     int(sym.get("end_line", 0) or 0))
+    return extent
+
 
 def symbol_spans(entry, query_tokens, max_spans=MAX_SPANS_PER_FILE):
     """Return up to `max_spans` (start, end, signature) tuples for the file's
@@ -846,6 +871,12 @@ def symbol_spans(entry, query_tokens, max_spans=MAX_SPANS_PER_FILE):
     unrelated def. Returns [] when no def name matches (the file was retrieved
     via prose / import-graph / filename) — the caller then leaves the path bare
     and Claude reads it normally. `end` is 0 when the index predates end_line.
+
+    Container-width spans (a matched class enclosing the whole file) are dropped
+    when at least one tighter span also matched; see WIDE_SPAN_FRACTION. If
+    *every* match is container-width, only the narrowest is kept, so a
+    class-only match still stages one span rather than several overlapping
+    whole-file ranges.
     """
     if not query_tokens:
         return []
@@ -863,6 +894,20 @@ def symbol_spans(entry, query_tokens, max_spans=MAX_SPANS_PER_FILE):
             continue
         end = int(sym.get("end_line", 0) or 0)
         hits.append((overlap, idx, start, end, sym.get("signature", "")))
+    if not hits:
+        return []
+
+    # Prefer tight spans over containers. A span with no end_line (older index)
+    # has unknown width and is treated as tight — it renders as "L12+" anyway.
+    extent = _file_line_extent(entry)
+    if extent > 0:
+        def width(h):
+            _, _, start, end, _ = h
+            return (end - start + 1) if end and end > start else 0
+
+        tight = [h for h in hits if width(h) <= WIDE_SPAN_FRACTION * extent]
+        hits = tight if tight else [min(hits, key=width)]
+
     hits.sort(key=lambda h: (-h[0], h[1]))
     return [(s, e, sig) for (_, _, s, e, sig) in hits[:max_spans]]
 

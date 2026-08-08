@@ -3,7 +3,7 @@
 Java and Kotlin share enough AST structure that one adapter handles both,
 dispatching to the right grammar by file extension.
 """
-from ._base import Symbol, ExtractResult, get_text, first_line
+from ._base import Symbol, ExtractResult, get_text, declaration_line
 
 LANGUAGE_NAME = "jvm"
 FILE_EXTENSIONS = [".java", ".kt", ".kts"]
@@ -92,7 +92,7 @@ def extract(source: bytes, filepath: str) -> ExtractResult:
                 if name:
                     line = name_node.start_point[0] + 1
                     end_line = node.end_point[0] + 1
-                    sig = first_line(get_text(node, source))[:200]
+                    sig = declaration_line(source, name_node)[:200]
                     symbols.append(Symbol(name=name, line=line, end_line=end_line, kind="def", signature=sig))
 
         elif nt in _IMPORT_TYPES:

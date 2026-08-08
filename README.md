@@ -53,7 +53,11 @@ There's one trick worth calling out. Programmers don't usually write `user_profi
 
 **Recency.** A file that changed last week is more likely to be relevant to whatever you're working on today than one that nobody's touched in two years. This is a tie-breaker, not a primary signal — once everything else is equal, prefer recent.
 
+> Worth knowing how this actually works: recency reads filesystem mtime, and git doesn't store mtimes. A fresh CI checkout stamps every file with the same timestamp, so on a **brand-new index the recency signal is a constant and carries no information at all.** It becomes meaningful as a side effect of incremental rebuilds — unchanged files keep the mtime from the run in which they last changed, so mtime converges on "the CI run that last touched this file." A `--force` rebuild flattens it again. Sourcing it from `git log -1 --format=%ct` instead is on the roadmap.
+
 **How things connect.** If file A defines something your question is about, and file B imports A, then B is probably worth a look too. The router walks the import graph one or two hops out from each strong match, so neighbouring code surfaces naturally.
+
+> This is a **name-adjacency heuristic, not resolved imports.** The indexer splits each import string on dots and slashes and matches every *segment* against every indexed file's *basename stem*. In a repo with mostly-unique basenames that approximates the real graph; in a monorepo with four `Config.java` files it links all four, and `from .utils import x` wires edges to every `utils.py` you own. It is also close to inert on Swift, where `import Foundation` names a module rather than a file — on a pure-Swift repo the graph signals contribute almost nothing. Resolving imports properly means per-language module resolution (tsconfig paths, Gradle source sets, Python `sys.path`), which is five language-specific resolvers, not one heuristic.
 
 **"Callers of X" gets a dedicated mode.** If your question looks like *"who calls AddToCartButton?"* or *"where is fetchUser used?"*, the router recognises the intent, locates the file that defines `AddToCartButton`, walks the reverse import graph, and returns the files that actually use it. This is the kind of question that's painful to grep for by hand.
 
@@ -249,14 +253,14 @@ pipeline {
 
 ## Token math
 
-On every `/tokenhack` invocation, the router emits roughly:
+Two costs, and it's worth separating them:
 
-- **Header line** — index freshness + file count (~5 tokens, always present)
-- **Top-K results** — paths + one-line "why" (~3-5 tokens × 5 = ~20 tokens)
-- **Conditional warnings** — low-confidence / stale-index (~10 tokens each, only when triggered)
-- **Test pair section** — when applicable (~5 tokens per pair)
+- **The skill body**, injected once per session when you first invoke `/tokenhack` — roughly **1,100–1,250 tokens**. It carries the nudge ruleset and the span-reading instructions, so it has to be there.
+- **The staged block itself**, per invocation. Measured across 12 queries on 6 real repos: **238–681 tokens, median ~510** (characters ÷ 4). Long Java package paths dominate this — a single `spring-web/src/main/java/org/springframework/web/client/RestTemplate.java` is ~25 tokens on its own.
 
-**Worst case: ~45 tokens. Average: ~25 tokens.** Versus a typical codebase-wide question where Claude grep-explores 5-15 files at hundreds-to-thousands of tokens each, the net savings are usually 10-50× on the question itself.
+Against a codebase-wide question where Claude otherwise grep-explores 5-15 files at hundreds-to-thousands of tokens each, that pays for itself on the first query.
+
+> **Correction (Aug 2026):** this section previously claimed "worst case ~45 tokens, average ~25." That counted an idealized path list and ignored both real path lengths and the skill body. The numbers above are measured.
 
 ### What that looks like in practice
 
@@ -269,9 +273,13 @@ Measured on one real query — *"how does the autofill credential vault work"* a
 
 **~95% savings on the navigation step alone**, for that one question.
 
-### What that means across a real session
+### It also narrows *what* gets read, not just *which* files
 
-TokenHack doesn't *read* files for Claude — it tells Claude *which* files to read. So the once-you-have-the-right-files cost is the same either way. The savings come from skipping the speculative grep-and-read-wrong-file cycle.
+Each result carries `↳ read L<start>-<end>` hints for the definitions that matched your query, and the skill instructs Claude to read those ranges via the Read tool's `offset`/`limit` rather than the whole file.
+
+Measured across 12 queries on 6 repos (netty, spring-framework, Signal-Android, DuckDuckGo iOS, OwnCloud, blinkit), comparing whole top-5 files against the union of staged spans: **197,403 → 32,700 approximate tokens, an 83% reduction, median 82% per query.**
+
+Two honest caveats. The win is zero when no definition name overlaps the query — the result falls back to a bare path, which happened on 1 of 12 queries. And before the `WIDE_SPAN_FRACTION` fix (Aug 2026), a matched *class* staged a span covering its whole file, which dropped the same measurement to 32%.
 
 Realistic session-level savings depend on your query mix:
 
@@ -312,6 +320,12 @@ The exact ruleset is in [`.claude/skills/tokenhack/SKILL.md`](.claude/skills/tok
 
 ## Honest limitations
 
+- **No evaluation harness, so there is no published hit rate.** ~20 scoring constants were tuned by running queries against six repos and inspecting output. Every one of them fixes a failure I can name; none of them is known to be optimal, and nothing would currently notice a regression. This is the top roadmap item and the most useful contribution available.
+- **A miss costs more than not invoking.** Expected value is `P(hit) × saving − P(miss) × cost`. When retrieval is wrong you pay the staged block *and* the grep you were avoiding. The low-confidence gate exists to bound that downside and is currently too permissive — `LOW_CONFIDENCE_SCORE` (0.5) sits below `ALPHA` (1.5), so almost any filename hit clears it.
+- **Test files frequently outrank the source they test.** They repeat the concept's vocabulary more densely than the implementation does, which is exactly what BM25 rewards. Useful context, wrong slot.
+- **Query cost is O(corpus), not an index lookup.** The router re-tokenizes every symbol and recomputes IDF on every query. Measured: 0.06 s at 112 files, 0.60 s at 1,211, 1.00 s at 3,512, 2.58 s at 9,487 — cleanly linear. Precomputing the postings list and IDF at index time is the obvious fix and hasn't been done.
+- **The committed index has a size ceiling.** Measured 4–6 KB per indexed file (7.2 MB at 1,211 files, 40.7 MB at 9,487). GitHub warns at 50 MB and hard-blocks blobs at 100 MB, putting the practical limit somewhere around 12,000–20,000 files.
+- **Language coverage is the binding constraint for many repos.** Python, Java, Kotlin, JS/JSX and Swift ship today. A mostly-TypeScript, Go, Rust, Ruby or C# repo indexes close to nothing — and the router doesn't yet surface the skip counts the indexer already records, so it fails quietly rather than loudly.
 - **Coreference depth-2+.** "And the same for the Stripe one" referring to a refactor two turns back will leak through Gate 2 — the rule only catches immediate-previous-turn pronouns.
 - **Project jargon.** "Fix the SSO bug" looks scoped to one symbol but may span 20 files. Users must invoke `/tokenhack` manually for these.
 - **Stack-trace debugging.** Looks local (file:line given) but root cause may be elsewhere. By design we don't nudge here — let Claude grep from the trace, which it does well.
