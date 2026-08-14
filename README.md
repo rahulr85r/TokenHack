@@ -1,9 +1,20 @@
 # TokenHack
 
-### Your coding agent spends a third of its turns just looking for the file.
-### TokenHack hands it a ranked shortlist first — from a CI-built index in your repo. No model, no service, nothing for developers to install.
+### Cut ~80% of the tokens your coding agent burns searching your codebase.
 
-**It finds a correct file in its top five on 90% of realistic questions, and cuts ~80% of the tokens a search costs on a large repo** ([measured](#does-it-actually-retrieve-the-right-file) — 72 questions, 6 repos, gold set built blind and committed so you can re-run it).
+Your agent spends about **a third of its turns just looking for the right file** — grepping, opening the wrong things, opening more. TokenHack hands it a ranked shortlist first, from an index built in CI and committed next to your code.
+
+|  | |
+|---|---|
+| **~80%** | fewer tokens per search on a large repo |
+| **90%** | of questions get a correct file into the top five (up from 26%) |
+| **0** | models, services, vector databases, or things for developers to install |
+
+Every number above is [measured](#does-it-actually-retrieve-the-right-file) across 72 questions on 6 open-source repositories. The gold set and the harness ship in this repo, and the evaluated repos are pinned to the commits they were measured against — so you can reproduce all of it rather than take it on trust.
+
+```bash
+/tokenhack how does the payment retry queue handle idempotency conflicts?
+```
 
 ---
 
